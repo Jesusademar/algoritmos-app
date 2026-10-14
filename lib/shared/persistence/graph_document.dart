@@ -1,5 +1,5 @@
-import '../../models/conexion.dart';
-import '../../models/nodo.dart';
+import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
+import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
 
 /// Documento intercambiable entre los editores gráficos de la aplicación.
 class GraphDocument {

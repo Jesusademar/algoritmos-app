@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import '../../models/conexion.dart';
-import '../../models/nodo.dart';
-import 'graph_document.dart';
+import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
+import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/persistence/graph_document.dart';
 
 /// Único lugar encargado de definir el formato JSON de los grafos.
 class GraphDocumentCodec {

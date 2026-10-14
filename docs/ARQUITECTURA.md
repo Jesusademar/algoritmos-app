@@ -1,88 +1,119 @@
 # Arquitectura de LogiVerse Core
 
-El proyecto usa una arquitectura por funcionalidades. La regla principal es
-que las pantallas muestran y capturan datos, mientras que las clases de
-dominio realizan los cálculos sin depender de Flutter.
+La aplicación está organizada por funcionalidades. Cada algoritmo conserva
+sus cálculos y validaciones en el dominio y sus pantallas dentro del mismo
+módulo. Los elementos visuales comunes y el acceso a archivos se comparten.
 
-## Estructura actual
+## Estructura
 
 ```text
 lib/
-├── main.dart                         # Punto de entrada mínimo
+├── main.dart
 ├── app/
-│   ├── app.dart                      # Widget raíz y configuración global
-│   └── app_theme.dart                # Tema compartido
+│   ├── app.dart
+│   ├── app_theme.dart
+│   └── navigation/algorithm_modules.dart
 ├── features/
-│   ├── assignment/
-│   │   └── domain/                   # Minimización y maximización
-│   │       ├── assignment_problem.dart
-│   │       ├── assignment_result.dart
-│   │       ├── assignment_solver.dart
-│   │       └── optimization_mode.dart
-│   └── johnson/
-│       └── domain/                   # Cálculo actual de red de actividades
-│           ├── activity_network_problem.dart
-│           ├── activity_network_result.dart
-│           └── activity_network_solver.dart
-├── models/                           # Modelos del editor gráfico existente
-└── screens/                          # Presentación y edición visual existente
+│   ├── dashboard/presentation/{screens,widgets}/
+│   ├── catalog/presentation/{screens,widgets}/
+│   ├── graph/presentation/{screens,widgets}/
+│   ├── assignment/{domain,presentation}/
+│   ├── johnson/{domain,presentation}/
+│   ├── esquina_nor_oeste/{domain,presentation}/
+│   ├── sorting/{domain,presentation}/
+│   └── binary_tree/{domain,presentation}/
+└── shared/
+    ├── graph_editor/
+    │   ├── models/{nodo,conexion}.dart
+    │   └── geometry/offset_geometry.dart
+    ├── persistence/
+    │   ├── graph_document.dart
+    │   ├── graph_document_codec.dart
+    │   └── graph_file_service.dart
+    └── widgets/
 ```
 
-Las pruebas reflejan la misma organización dentro de `test/`.
+Las rutas anteriores `lib/screens/` y `lib/models/` se mantienen como archivos
+`export` de compatibilidad. Permiten resolver imports existentes; no contienen
+otra implementación. Los cambios se hacen en los módulos y en `shared/`.
 
-## Flujo de dependencias
+Dentro de cada `presentation/`, las pantallas se ubican en `screens/` y los
+lienzos, dibujos y componentes en `widgets/`. Ordenamiento mantiene su estado
+de reproducción en `providers/sorting_visualization_provider.dart`.
+
+## Responsabilidades
+
+- **`app/`:** crea la aplicación y configura el tema. `algorithm_modules.dart`
+  define nombres, descripciones, categorías, colores y destinos de los seis
+  módulos. El dashboard y el menú usan este catálogo único.
+- **`features/*/domain/`:** problemas, resultados, cálculos y validaciones.
+  Estas clases usan Dart y no dependen de widgets ni de `BuildContext`.
+- **`features/*/presentation/screens/`:** interacción, edición, apertura de
+  diálogos y coordinación entre los datos y los resultados. Las pantallas de
+  grafos todavía mantienen el estado de edición local mediante `State`.
+- **`features/*/presentation/widgets/`:** dibujo y presentación. Los pintores
+  de grafos, asignación, transporte y actividades están separados de sus
+  pantallas. Cada uno conserva las reglas visuales de su propio módulo.
+- **`shared/graph_editor/`:** modelos mutables del editor y geometría de
+  conexiones. `Nodo` y `Conexion` contienen tipos gráficos de `dart:ui` y no
+  forman parte del dominio matemático.
+- **`shared/persistence/`:** formato de los documentos y acceso multiplataforma
+  a archivos JSON. `GraphFileService` permite sustituir lector y escritor en
+  las pruebas; los módulos no escriben directamente con `dart:io`.
+- **`shared/widgets/`:** superficies, encabezados, paneles, tarjetas de acceso,
+  pasos del manual y diálogo de guardado. No contiene lógica de algoritmos.
+
+Los documentos de árboles y ordenamiento contienen datos de Dart y validan
+las entradas antes de reemplazar el estado visible. Ordenamiento conserva la
+entrada original y recalcula los pasos al cargar, recuperando la sesión en
+pausa. Los árboles conservan su estructura y las posiciones de sus nodos.
+
+## Flujo de datos
 
 ```text
-Pantalla → Problema de dominio → Solver → Resultado de dominio → Pantalla
+Pantalla → Problema → Solver → Resultado → Visualización
+Pantalla ↔ Documento JSON ↔ GraphFileService
 ```
 
-El dominio no puede importar `material.dart`, widgets, archivos ni diálogos.
-Así, los algoritmos se pueden probar con `flutter test` y también reutilizar
-en otra interfaz.
+No se comparten reglas matemáticas entre algoritmos por parecerse visualmente.
+Por ejemplo, las restricciones de una red de actividades y las de asignación
+se validan en su módulo correspondiente.
 
-## Reglas para trabajar en equipo
+## Sistema visual
 
-1. Una modificación del algoritmo se hace en `features/<modulo>/domain` y
-   debe incluir o actualizar una prueba.
-2. Los cambios visuales se hacen en la pantalla; allí no se implementan
-   fórmulas ni búsquedas combinatorias.
-3. Los modelos de entrada y salida del algoritmo son inmutables.
-4. No se accede a `BuildContext` desde el dominio.
-5. Antes de integrar cambios se ejecutan:
+`AppColors` define la paleta y `AppLayout` reúne radios, márgenes, ancho de
+contenido y límites de los paneles. `AppTheme` configura tipografía, entradas,
+botones, menús, diálogos y mensajes. Cada módulo usa un acento identificable.
 
-   ```powershell
-   D:\FlutterSDK\bin\dart.bat analyze lib test
-   D:\FlutterSDK\bin\flutter.bat test
-   ```
+`AlgorithmScaffold` proporciona encabezado y fondo. `AlgorithmWorkspace`
+adapta el lienzo y su panel entre móvil y escritorio. `AlgorithmPanelSection`
+organiza los controles y resultados. `AlgorithmLaunchCard` comparte el diseño
+y los estados de foco y ratón entre el catálogo y los métodos de ordenamiento.
+Las tarjetas crecen según su contenido para admitir texto ampliado.
 
-## Distribución sugerida para tres integrantes
+## Añadir un módulo
 
-- Integrante 1: navegación, diseño, editor visual y experiencia de usuario.
-- Integrante 2: asignación por minimización/maximización y sus pruebas.
-- Integrante 3: algoritmo de Johnson, validaciones y sus pruebas.
+1. Crear su carpeta bajo `features/` y sus cálculos en `domain/`.
+2. Crear la pantalla en `presentation/screens/` y el dibujo en
+   `presentation/widgets/`.
+3. Usar los componentes y el tema compartidos.
+4. Registrar el módulo en `app/navigation/algorithm_modules.dart`.
+5. Incorporar las pruebas de cálculos y flujos en `test/features/<módulo>/`.
+6. Verificar navegación, diseño compacto, archivos y errores relevantes.
 
-Cada integrante debe trabajar en una rama distinta y unir cambios mediante
-revisión, para evitar que los tres editen al mismo tiempo las pantallas grandes.
+## Verificaciones
 
-## Próxima separación recomendada
+```sh
+dart format lib test
+flutter analyze
+flutter test
+flutter build web
+```
 
-Las pantallas heredadas todavía contienen diálogos, persistencia y dibujo en
-un solo archivo. El siguiente paso seguro es extraer, por funcionalidad:
+Las pruebas incluyen validaciones matemáticas, interacción, guardar/cargar,
+navegación con teclado, texto ampliado y tamaños de móvil y escritorio.
+La descarga real se comprueba con la prueba para Chrome en
+`test/shared/persistence/graph_file_web_test.dart`.
 
-- `presentation/widgets/` para el lienzo, paneles y diálogos;
-- `presentation/<feature>_controller.dart` para el estado de la pantalla;
-- `data/` para importar y exportar JSON;
-- `shared/graph_editor/` para las piezas visuales realmente comunes.
-
-No conviene crear una clase común gigantesca para los tres módulos: se debe
-compartir solamente el editor visual y la persistencia, no las reglas de cada
-algoritmo.
-
-## Observación funcional importante
-
-La pantalla llamada `JohnsonScreen` actualmente modela una red de actividades
-y calcula tiempos tempranos, tardíos, holguras y ruta crítica. Eso corresponde
-a CPM/PERT. La regla clásica de Johnson, descrita en el menú, ordena trabajos
-en dos máquinas para minimizar el *makespan*. Antes de la entrega se debe
-confirmar cuál de los dos métodos exige el docente; si exige Johnson clásico,
-esa pantalla necesita un modelo de trabajos y tiempos por máquina.
+El módulo llamado Johnson representa una red de actividades CPM/PERT, no la
+regla clásica de secuenciación de trabajos en dos máquinas.

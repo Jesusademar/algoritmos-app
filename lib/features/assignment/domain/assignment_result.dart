@@ -1,4 +1,4 @@
-import 'assignment_problem.dart';
+import 'package:app_grafos/features/assignment/domain/assignment_problem.dart';
 
 class AssignmentMatch {
   const AssignmentMatch({

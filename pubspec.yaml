@@ -1,5 +1,5 @@
 name: app_grafos
-description: "A new Flutter project."
+description: "Laboratorio interactivo de algoritmos e investigación de operaciones."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   path_provider: ^2.1.2
   file_selector: ^1.0.3
+  file_saver: ^0.7.0
 
 dev_dependencies:
   flutter_test:

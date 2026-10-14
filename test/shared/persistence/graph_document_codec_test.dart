@@ -1,9 +1,10 @@
-import 'package:app_grafos/models/conexion.dart';
-import 'package:app_grafos/models/nodo.dart';
-import 'package:app_grafos/shared/persistence/graph_document.dart';
-import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
+import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/persistence/graph_document.dart';
+import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 
 void main() {
   const codec = GraphDocumentCodec();

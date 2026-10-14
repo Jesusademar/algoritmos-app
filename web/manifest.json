@@ -1,11 +1,11 @@
 {
-    "name": "app_grafos",
-    "short_name": "app_grafos",
+    "name": "LogiVerse Core",
+    "short_name": "LogiVerse",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0D0B1C",
+    "theme_color": "#B49BFF",
+    "description": "Laboratorio interactivo de algoritmos, grafos y árboles binarios.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

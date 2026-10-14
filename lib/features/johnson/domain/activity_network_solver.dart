@@ -1,5 +1,6 @@
-import 'activity_network_problem.dart';
-import 'activity_network_result.dart';
+import 'package:app_grafos/features/johnson/domain/activity_network_problem.dart';
+import 'package:app_grafos/features/johnson/domain/activity_network_result.dart';
+import 'package:app_grafos/features/johnson/domain/activity_network_rules.dart';
 
 /// Calcula tiempos tempranos, tardíos, holguras y aristas de la ruta elegida.
 ///
@@ -11,6 +12,8 @@ class ActivityNetworkSolver {
   final int maxRelaxationPasses;
 
   ActivityNetworkResult solve(ActivityNetworkProblem problem) {
+    final error = const ActivityNetworkRules().networkError(problem.edges);
+    if (error != null) throw ArgumentError(error);
     final incoming = <String, List<ActivityEdge>>{
       for (final nodeId in problem.nodeIds) nodeId: <ActivityEdge>[],
     };

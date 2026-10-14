@@ -1,6 +1,7 @@
+import 'package:flutter_test/flutter_test.dart';
+
 import 'package:app_grafos/features/johnson/domain/activity_network_problem.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_solver.dart';
-import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const solver = ActivityNetworkSolver();

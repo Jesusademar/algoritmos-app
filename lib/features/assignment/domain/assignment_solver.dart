@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'assignment_problem.dart';
-import 'assignment_result.dart';
-import 'optimization_mode.dart';
+import 'package:app_grafos/features/assignment/domain/assignment_problem.dart';
+import 'package:app_grafos/features/assignment/domain/assignment_result.dart';
+import 'package:app_grafos/features/assignment/domain/optimization_mode.dart';
 
 /// Resuelve minimización y maximización sin depender de widgets ni estado UI.
 ///
@@ -13,6 +13,7 @@ class AssignmentSolver {
 
   AssignmentResult? solve(AssignmentProblem problem) {
     if (problem.origins.isEmpty || problem.destinations.isEmpty) return null;
+    problem = problem.toSquare();
 
     final size = max(problem.origins.length, problem.destinations.length);
     final usedColumns = List<bool>.filled(size, false);

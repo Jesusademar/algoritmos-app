@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../screens/dashboard_screen.dart';
-import 'app_theme.dart';
+import 'package:app_grafos/app/app_theme.dart';
+import 'package:app_grafos/features/dashboard/presentation/screens/dashboard_screen.dart';
 
 /// Raíz de la aplicación.
 ///
