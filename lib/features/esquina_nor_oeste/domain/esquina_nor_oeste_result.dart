@@ -1,3 +1,4 @@
+import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_problem.dart';
 
 /// Asignación o cantidad enviada de un origen a un destino.
@@ -23,6 +24,7 @@ class EsquinaNorOesteResult {
     required List<EsquinaNorOesteAssignment> assignments,
     this.unshippedSupply = 0,
     this.unmetDemand = 0,
+    this.procedure,
   }) : assignments = List.unmodifiable(assignments),
        totalCost = assignments.fold<num>(0, (sum, a) => sum + a.totalCost);
 
@@ -30,4 +32,5 @@ class EsquinaNorOesteResult {
   final num totalCost;
   final num unshippedSupply;
   final num unmetDemand;
+  final MathematicalProcedure? procedure;
 }

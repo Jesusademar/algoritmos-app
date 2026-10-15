@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:app_grafos/features/assignment/domain/assignment_problem.dart';
+import 'package:app_grafos/features/assignment/domain/assignment_procedure.dart';
 import 'package:app_grafos/features/assignment/domain/assignment_result.dart';
 import 'package:app_grafos/features/assignment/domain/optimization_mode.dart';
 
@@ -11,9 +12,16 @@ import 'package:app_grafos/features/assignment/domain/optimization_mode.dart';
 class AssignmentSolver {
   const AssignmentSolver();
 
-  AssignmentResult? solve(AssignmentProblem problem) {
+  AssignmentResult? solve(
+    AssignmentProblem problem, {
+    bool includeProcedure = false,
+  }) {
     if (problem.origins.isEmpty || problem.destinations.isEmpty) return null;
+    final original = problem;
     problem = problem.toSquare();
+    final procedure = includeProcedure
+        ? AssignmentProcedureRecorder(original, problem)
+        : null;
 
     final size = max(problem.origins.length, problem.destinations.length);
     final usedColumns = List<bool>.filled(size, false);
@@ -28,6 +36,7 @@ class AssignmentSolver {
             (problem.mode == OptimizationMode.minimize
                 ? currentCost < bestCost!
                 : currentCost > bestCost!);
+        procedure?.candidate(currentColumns, currentCost, improvesBest);
         if (improvesBest) {
           bestCost = currentCost;
           bestColumns = List<int>.from(currentColumns);
@@ -76,6 +85,9 @@ class AssignmentSolver {
       );
     }
 
-    return AssignmentResult(matches: matches);
+    return AssignmentResult(
+      matches: matches,
+      procedure: procedure?.finish(matches),
+    );
   }
 }

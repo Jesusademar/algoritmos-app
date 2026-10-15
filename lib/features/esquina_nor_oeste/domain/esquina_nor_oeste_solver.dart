@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_problem.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_result.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/optimization_mode.dart';
+import 'package:app_grafos/features/esquina_nor_oeste/domain/transport_procedure.dart';
 
 /// Obtiene una solución inicial por esquina noroeste y mejora su costo
 /// mediante circuitos en la red residual. Para maximizar, invierte los costos
@@ -16,7 +17,10 @@ class EsquinaNorOesteSolver {
   /// Balancea internamente con un origen o destino auxiliar de costo cero.
   /// Devuelve null si los datos son inválidos o las rutas no permiten enviar
   /// toda la cantidad disponible para el transporte.
-  EsquinaNorOesteResult? solve(EsquinaNorOesteProblem problem) {
+  EsquinaNorOesteResult? solve(
+    EsquinaNorOesteProblem problem, {
+    bool includeProcedure = false,
+  }) {
     final origins = List<EsquinaNorOesteItem>.of(problem.origins);
     final destinations = List<EsquinaNorOesteItem>.of(problem.destinations);
     if (origins.isEmpty || destinations.isEmpty) return null;
@@ -81,6 +85,7 @@ class EsquinaNorOesteSolver {
       origins.length,
       (_) => List<_FlowEdge?>.filled(destinations.length, null),
     );
+    final coordinates = <_FlowEdge, (int, int, int)>{};
     final sign = problem.mode == OptimizationMode.minimize ? 1 : -1;
     for (var i = 0; i < origins.length; i++) {
       for (var j = 0; j < destinations.length; j++) {
@@ -92,11 +97,50 @@ class EsquinaNorOesteSolver {
             min(origins[i].supply, destinations[j].demand),
             sign * cost,
           );
+          if (includeProcedure) {
+            coordinates[routes[i][j]!] = (i, j, 1);
+            coordinates[routes[i][j]!.reverse] = (i, j, -1);
+          }
         }
       }
     }
 
-    var sent = _seedNorthWest(supplyEdges, demandEdges, routes);
+    final procedure = includeProcedure
+        ? TransportProcedureRecorder(
+            problem: problem,
+            origins: origins,
+            destinations: destinations,
+            unitCost: unitCost,
+            allocated: (i, j) => routes[i][j]?.reverse.remaining ?? 0,
+          )
+        : null;
+    List<TransportChange> captureChanges(List<_FlowEdge> edges) => [
+      for (final edge in edges)
+        if (coordinates[edge] case final position?)
+          TransportChange(
+            position.$1,
+            position.$2,
+            position.$3,
+            routes[position.$1][position.$2]!.reverse.remaining,
+          ),
+    ];
+    num currentCost() {
+      num value = 0;
+      for (var i = 0; i < origins.length; i++) {
+        for (var j = 0; j < destinations.length; j++) {
+          value +=
+              (routes[i][j]?.reverse.remaining ?? 0) * (unitCost(i, j) ?? 0);
+        }
+      }
+      return value;
+    }
+
+    var sent = _seedNorthWest(
+      supplyEdges,
+      demandEdges,
+      routes,
+      onAllocation: procedure?.northWest,
+    );
     // Sparse matrices may block the northwest route. Residual paths complete
     // or reroute the initial flow without inventing unavailable connections.
     while (targetTotal - sent > _epsilon) {
@@ -106,12 +150,20 @@ class EsquinaNorOesteSolver {
       for (final edge in path) {
         quantity = min(quantity, edge.remaining);
       }
+      final changes = procedure == null ? null : captureChanges(path);
+      final capacities = procedure == null
+          ? null
+          : path.map((edge) => edge.remaining).toList();
       for (final edge in path) {
         edge.send(quantity);
+      }
+      if (procedure != null) {
+        procedure.adjustment(changes!, quantity, capacities!);
       }
       sent += quantity;
     }
 
+    procedure?.initialSolution();
     // A feasible transportation flow is optimal iff its residual network has
     // no negative cost cycle. Each circuit preserves every row/column total.
     while (true) {
@@ -121,12 +173,28 @@ class EsquinaNorOesteSolver {
       for (final edge in circuit) {
         quantity = min(quantity, edge.remaining);
       }
+      final changes = procedure == null ? null : captureChanges(circuit);
+      final capacities = procedure == null
+          ? null
+          : circuit.map((edge) => edge.remaining).toList();
+      final before = procedure == null ? null : currentCost();
+      final delta = circuit.fold<num>(0, (sum, edge) => sum + sign * edge.cost);
       for (final edge in circuit) {
         edge.send(quantity);
+      }
+      if (procedure != null) {
+        procedure.adjustment(
+          changes!,
+          quantity,
+          capacities!,
+          unitDelta: delta,
+          costBefore: before,
+        );
       }
     }
 
     return EsquinaNorOesteResult(
+      procedure: procedure?.finish(),
       unshippedSupply: max(0, totalSupply - totalDemand),
       unmetDemand: max(0, totalDemand - totalSupply),
       assignments: [
@@ -147,8 +215,16 @@ class EsquinaNorOesteSolver {
   num _seedNorthWest(
     List<_FlowEdge> supplies,
     List<_FlowEdge> demands,
-    List<List<_FlowEdge?>> routes,
-  ) {
+    List<List<_FlowEdge?>> routes, {
+    void Function(
+      int i,
+      int j,
+      num quantity,
+      num supplyBefore,
+      num demandBefore,
+    )?
+    onAllocation,
+  }) {
     var i = 0;
     var j = 0;
     num sent = 0;
@@ -163,10 +239,13 @@ class EsquinaNorOesteSolver {
       }
       final route = routes[i][j];
       if (route == null) break;
-      final quantity = min(supplies[i].remaining, demands[j].remaining);
+      final supplyBefore = supplies[i].remaining;
+      final demandBefore = demands[j].remaining;
+      final quantity = min(supplyBefore, demandBefore);
       supplies[i].send(quantity);
       route.send(quantity);
       demands[j].send(quantity);
+      onAllocation?.call(i, j, quantity, supplyBefore, demandBefore);
       sent += quantity;
     }
     return sent;

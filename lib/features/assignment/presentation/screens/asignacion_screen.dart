@@ -9,6 +9,7 @@ import 'package:app_grafos/features/assignment/domain/assignment_problem.dart';
 import 'package:app_grafos/features/assignment/domain/assignment_solver.dart';
 import 'package:app_grafos/features/assignment/domain/optimization_mode.dart';
 import 'package:app_grafos/features/assignment/presentation/widgets/assignment_painter.dart';
+import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/shared/graph_editor/geometry/offset_geometry.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
@@ -18,6 +19,7 @@ import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 import 'package:app_grafos/shared/widgets/manual_step.dart';
+import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 
 class AsignacionScreen extends StatefulWidget {
   const AsignacionScreen({super.key, this.initialDocument});
@@ -40,6 +42,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
   List<String> idsConexionesOptimas = [];
 
   num? ultimoCostoOptimo;
+  MathematicalProcedure? _procedure;
   List<String> detalleAsignaciones = [];
 
   final nombreController = TextEditingController();
@@ -61,13 +64,20 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
     mostrarProceso = true;
   }
 
+  void _invalidarResultado() {
+    idsConexionesOptimas.clear();
+    ultimoCostoOptimo = null;
+    detalleAsignaciones = [];
+    _procedure = null;
+  }
+
   void limpiarTodo() {
     setState(() {
       nodos.clear();
       conexiones.clear();
       nodoOrigen = null;
       nodoDragging = null;
-      idsConexionesOptimas.clear();
+      _invalidarResultado();
       ultimoCostoOptimo = null;
       detalleAsignaciones.clear();
     });
@@ -203,7 +213,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
         nodos = document.nodes.toList();
         conexiones = document.connections.toList();
         nodoOrigen = null;
-        idsConexionesOptimas.clear();
+        _invalidarResultado();
         ultimoCostoOptimo = null;
         detalleAsignaciones.clear();
       });
@@ -297,7 +307,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                       posicion: posicion,
                     ),
                   );
-                  idsConexionesOptimas.clear();
+                  _invalidarResultado();
                 });
                 Navigator.pop(context);
               }
@@ -433,6 +443,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
               if (nombreController.text.isNotEmpty) {
                 setState(() {
                   nodo.nombre = nombreController.text;
+                  _invalidarResultado();
                 });
                 Navigator.pop(context);
               }
@@ -643,7 +654,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                             color: randomColor,
                           ),
                         );
-                        idsConexionesOptimas.clear();
+                        _invalidarResultado();
                       });
                       Navigator.pop(context);
                     },
@@ -669,14 +680,14 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
       conexiones.removeWhere((c) => c.nodoA == nodo.id || c.nodoB == nodo.id);
       nodos.remove(nodo);
       if (nodoOrigen?.id == nodo.id) nodoOrigen = null;
-      idsConexionesOptimas.clear();
+      _invalidarResultado();
     });
   }
 
   void borrarConexion(Conexion conexion) {
     setState(() {
       conexiones.remove(conexion);
-      idsConexionesOptimas.clear();
+      _invalidarResultado();
     });
   }
 
@@ -757,7 +768,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                     color: conexion.color,
                   );
                 }
-                idsConexionesOptimas.clear();
+                _invalidarResultado();
               });
               Navigator.pop(context);
             },
@@ -845,8 +856,11 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
 
   void calcularSolucionOptima() {
     final problema = _crearProblemaAsignacion();
-    if (problema == null) return;
-    final resultado = _solver.solve(problema);
+    if (problema == null) {
+      setState(_invalidarResultado);
+      return;
+    }
+    final resultado = _solver.solve(problema, includeProcedure: true);
 
     final idsOptimos = <String>[];
     final detalles = <String>[];
@@ -866,6 +880,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
 
     setState(() {
       ultimoCostoOptimo = resultado?.total;
+      _procedure = resultado?.procedure;
       detalleAsignaciones = detalles;
       idsConexionesOptimas = idsOptimos;
       mostrarProceso = true;
@@ -1055,6 +1070,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                         if (nodoDragging != null) {
                           setState(() {
                             nodoDragging!.posicion += details.delta;
+                            _invalidarResultado();
                           });
                         }
                       },
@@ -1129,7 +1145,10 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                                   ],
                                   onChanged: (val) {
                                     if (val != null) {
-                                      setState(() => tipoOptimizacion = val);
+                                      setState(() {
+                                        tipoOptimizacion = val;
+                                        _invalidarResultado();
+                                      });
                                     }
                                   },
                                 ),
@@ -1158,6 +1177,22 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
                                     ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: _procedure == null
+                                      ? null
+                                      : () => showMathematicalProcedure(
+                                          context,
+                                          _procedure!,
+                                        ),
+                                  icon: const Icon(
+                                    Icons.functions_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    'Ver procedimiento matemático',
                                   ),
                                 ),
                                 const SizedBox(height: 20),

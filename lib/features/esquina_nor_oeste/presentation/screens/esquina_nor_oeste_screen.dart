@@ -4,6 +4,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
+import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
+import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_problem.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_solver.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/optimization_mode.dart';
@@ -39,6 +41,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
   OptimizationMode modoActual = OptimizationMode.minimize;
 
   num? ultimoCostoTotal;
+  MathematicalProcedure? _procedure;
   num ofertaSinUtilizar = 0;
   num demandaPendiente = 0;
   List<String> detalleAsignaciones = [];
@@ -61,6 +64,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
 
   void _invalidarResultado() {
     ultimoCostoTotal = null;
+    _procedure = null;
     ofertaSinUtilizar = 0;
     demandaPendiente = 0;
     detalleAsignaciones = [];
@@ -94,6 +98,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       nodoOrigen = null;
       nodoDragging = null;
       ultimoCostoTotal = null;
+      _procedure = null;
       detalleAsignaciones.clear();
       errorCalculo = null;
     });
@@ -218,6 +223,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
         }
         nodoOrigen = null;
         ultimoCostoTotal = null;
+        _procedure = null;
         detalleAsignaciones.clear();
         errorCalculo = null;
       });
@@ -557,6 +563,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
     setState(() {
       errorCalculo = mensaje;
       ultimoCostoTotal = null;
+      _procedure = null;
       detalleAsignaciones = [];
       mostrarProceso = true;
     });
@@ -606,7 +613,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       );
       return;
     }
-    final resultado = _solver.solve(problem);
+    final resultado = _solver.solve(problem, includeProcedure: true);
     if (resultado == null) {
       _mostrarErrorCalculo(
         'Las rutas disponibles no permiten satisfacer toda '
@@ -617,6 +624,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
     setState(() {
       errorCalculo = null;
       ultimoCostoTotal = resultado.totalCost;
+      _procedure = resultado.procedure;
       ofertaSinUtilizar = resultado.unshippedSupply;
       demandaPendiente = resultado.unmetDemand;
       detalleAsignaciones = [
@@ -835,6 +843,18 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _procedure == null
+                          ? null
+                          : () => showMathematicalProcedure(
+                              context,
+                              _procedure!,
+                              accent: AppColors.success,
+                            ),
+                      icon: const Icon(Icons.functions_rounded, size: 18),
+                      label: const Text('Ver procedimiento matemático'),
+                    ),
                     const SizedBox(height: 20),
                     if (errorCalculo != null) ...[
                       Text(
@@ -941,6 +961,10 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
+        headingRowHeight: max(
+          56,
+          56 * MediaQuery.textScalerOf(context).scale(1),
+        ),
         headingRowColor: WidgetStateProperty.all(AppColors.successSoft),
         columns: [
           const DataColumn(

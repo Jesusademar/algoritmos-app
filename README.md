@@ -23,6 +23,10 @@ reproducción, línea de tiempo y métricas al terminar. Sus turnos visuales no
 representan mediciones de velocidad real.
 
 Los módulos incluyen ayuda y archivos JSON para guardar y cargar los datos.
+En Asignación y Esquina Noroeste, calcula una solución y pulsa **Ver procedimiento
+matemático** para consultar matrices, restricciones, operaciones y el costo final.
+El procedimiento registra la búsqueda de asignaciones y, en transporte, la
+distribución inicial noroeste y sus ajustes de optimización.
 La interfaz se adapta a pantallas móviles, tabletas y escritorio. El guardado
 usa descarga en navegador y selección de destino en aplicaciones nativas.
 
@@ -43,6 +47,7 @@ lib/
 │   ├── sorting/                 # Dominio, estado y presentación
 │   └── binary_tree/             # Dominio y presentación
 └── shared/
+    ├── domain/                  # Procedimientos matemáticos de los módulos
     ├── graph_editor/            # Modelos visuales y geometría
     ├── persistence/             # Documentos y archivos JSON
     └── widgets/                 # Encabezados, tarjetas, paneles y diálogos
