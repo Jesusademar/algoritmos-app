@@ -1,88 +1,80 @@
 import 'dart:math';
 
-/// Validates input for sorting algorithms
+import 'package:app_grafos/features/sorting/domain/sorting_numbers.dart';
+
 class SortingValidator {
-  static const int minValue = 1;
-  static const int maxValue = 100;
-  static const int maxElements = 20;
-
-  /// Validates a list of numbers for sorting
-  /// Returns (isValid, errorMessage)
-  static (bool, String?) validateArray(List<int> numbers) {
-    if (numbers.isEmpty) {
-      return (false, 'El array no puede estar vacío');
+  static (bool, String?) validateArray(List<Object> numbers) {
+    if (numbers.isEmpty) return (false, 'La lista no puede estar vacía.');
+    if (numbers.any((value) => value is! int && value is! BigInt)) {
+      return (false, 'Utiliza únicamente números enteros.');
     }
-
-    if (numbers.length > maxElements) {
-      return (
-        false,
-        'Máximo $maxElements elementos permitidos (se proporcionaron ${numbers.length})',
-      );
-    }
-
-    for (final num in numbers) {
-      if (num < minValue || num > maxValue) {
-        return (
-          false,
-          'Todos los números deben estar entre $minValue y $maxValue (encontrado: $num)',
-        );
-      }
-    }
-
     return (true, null);
   }
 
-  /// Parses comma-separated string into list of integers
-  /// Returns (numbers, errorMessage)
-  static (List<int>, String?) parseInputString(String input) {
-    final trimmed = input.trim();
-
-    if (trimmed.isEmpty) {
-      return ([], 'El input no puede estar vacío');
-    }
-
+  static (List<Object>, String?) parseInputString(String input) {
+    if (input.trim().isEmpty) return ([], 'Ingresa al menos un número.');
     try {
-      final parts = trimmed.split(',');
-      final numbers = <int>[];
-
-      for (final part in parts) {
-        final cleaned = part.trim();
-        if (cleaned.isEmpty) {
-          return (
-            [],
-            'No se permiten comas consecutivas o espacios en blanco sin número',
-          );
-        }
-
-        final num = int.parse(cleaned);
-        numbers.add(num);
-      }
-
-      final (isValid, error) = validateArray(numbers);
-      if (!isValid) {
-        return ([], error!);
-      }
-
-      return (numbers, null);
-    } catch (e) {
-      return (
-        [],
-        'Input inválido. Use números separados por comas (ej: 5,3,8,1)',
-      );
+      return (input.split(',').map(SortingNumbers.parse).toList(), null);
+    } on FormatException catch (error) {
+      return ([], error.message);
     }
   }
 
-  /// Generates random array of specified size
-  static List<int> generateRandomArray(int size) {
-    if (size <= 0 || size > maxElements) {
-      throw ArgumentError('Size debe estar entre 1 y $maxElements');
+  /// Rango inclusivo sin crear una lista con todos sus posibles valores.
+  static List<Object> generateRandomArray(
+    int size, {
+    Object minimum = 1,
+    Object maximum = 100,
+    bool unique = false,
+    Random? random,
+  }) {
+    if (size <= 0) {
+      throw ArgumentError('La cantidad debe ser un entero mayor que cero.');
     }
+    final lower = SortingNumbers.integer(minimum);
+    final upper = SortingNumbers.integer(maximum);
+    if (lower > upper) {
+      throw ArgumentError('El mínimo no puede ser mayor que el máximo.');
+    }
+    final width = upper - lower + BigInt.one;
+    if (unique && BigInt.from(size) > width) {
+      throw ArgumentError(
+        'El rango no contiene suficientes números distintos. Permite repetidos o amplía el rango.',
+      );
+    }
+    final generator = random ?? Random();
+    if (!unique) {
+      return List.generate(
+        size,
+        (_) => SortingNumbers.compact(lower + _below(width, generator)),
+      );
+    }
+    // Muestreo de Floyd: cantidad exacta sin reintentos por colisiones.
+    final chosen = <BigInt>{};
+    for (
+      var remaining = width - BigInt.from(size);
+      remaining < width;
+      remaining += BigInt.one
+    ) {
+      final candidate = _below(remaining + BigInt.one, generator);
+      chosen.add(chosen.contains(candidate) ? remaining : candidate);
+    }
+    return chosen.map((value) => SortingNumbers.compact(lower + value)).toList()
+      ..shuffle(generator);
+  }
 
-    // Muestreo acotado: también funciona con la precisión del reloj del navegador.
-    final candidates = List.generate(
-      maxValue - minValue + 1,
-      (index) => minValue + index,
-    )..shuffle(Random());
-    return candidates.take(size).toList();
+  static BigInt _below(BigInt bound, Random random) {
+    if (bound == BigInt.one) return BigInt.zero;
+    final bits = (bound - BigInt.one).bitLength;
+    while (true) {
+      var number = BigInt.zero;
+      var remaining = bits;
+      while (remaining > 0) {
+        final take = min(26, remaining);
+        number = (number << take) | BigInt.from(random.nextInt(1 << take));
+        remaining -= take;
+      }
+      if (number < bound) return number;
+    }
   }
 }

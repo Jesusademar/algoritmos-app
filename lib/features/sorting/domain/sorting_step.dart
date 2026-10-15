@@ -1,7 +1,7 @@
 /// Represents a single step in the sorting process.
 /// Each step contains the array state and visual indicators.
 class SortingStep {
-  final List<int> array;
+  final List<Object> array;
   final int? comparingIndex1;
   final int? comparingIndex2;
   final int? movingIndex;
@@ -19,7 +19,7 @@ class SortingStep {
 
   /// Creates a copy with modified fields
   SortingStep copyWith({
-    List<int>? array,
+    List<Object>? array,
     int? comparingIndex1,
     int? comparingIndex2,
     int? movingIndex,

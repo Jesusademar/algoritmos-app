@@ -4,20 +4,21 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
-import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
-import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_problem.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_solver.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/optimization_mode.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/widgets/transport_painter.dart';
+import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 import 'package:app_grafos/shared/persistence/graph_document.dart';
 import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
+import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
-import 'package:app_grafos/shared/widgets/manual_step.dart';
+import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 
 class EsquinaNorOesteScreen extends StatefulWidget {
   const EsquinaNorOesteScreen({super.key, this.initialDocument});
@@ -105,7 +106,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('🗑️ Lienzo y datos limpiados.'),
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.errorSoft,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -113,75 +114,10 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
   }
 
   void mostrarManualAyuda() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppColors.surface,
-        title: const Row(
-          children: [
-            Icon(
-              Icons.help_outline_rounded,
-              color: AppColors.success,
-              size: 24,
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Manual de Uso - Optimización',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 520,
-          height: 440,
-          child: ListView(
-            children: const [
-              ManualStep(
-                numero: '1',
-                titulo: 'Crear Nodos',
-                descripcion: 'Haz clic izquierdo para crear Orígenes (izq) y Destinos (der).',
-              ),
-              ManualStep(
-                numero: '2',
-                titulo: 'Conectar Costos',
-                descripcion: 'Conecta nodos y define sus costos unitarios.',
-              ),
-              ManualStep(
-                numero: '3',
-                titulo: 'Gestionar (Clic Derecho)',
-                descripcion: 'Usa el clic derecho sobre nodos o conexiones para editar sus valores o eliminarlos.',
-              ),
-              ManualStep(
-                numero: '4',
-                titulo: 'Optimizar',
-                descripcion: 'Elige minimizar o maximizar. Esquina noroeste genera la solución inicial; después se optimiza respetando la oferta y la demanda. Si las cantidades totales difieren, se calcula directamente con lo disponible.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.success,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '¡Entendido!',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+    showAlgorithmManual(
+      context,
+      AlgorithmManual.transport,
+      accent: AppColors.success,
     );
   }
 
@@ -281,7 +217,9 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
             ),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.buttonFill(AppColors.success),
+            ),
             onPressed: () {
               if (nombreController.text.isNotEmpty) {
                 final id = 'n${DateTime.now().millisecondsSinceEpoch}';
@@ -345,7 +283,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
         ),
         actions: [
           TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
             onPressed: () {
               setState(() {
                 _invalidarResultado();
@@ -363,7 +301,9 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
             label: const Text('Eliminar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.buttonFill(AppColors.success),
+            ),
             onPressed: () {
               if (nombreController.text.isNotEmpty) {
                 setState(() {
@@ -422,7 +362,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
         ),
         actions: [
           TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorText),
             onPressed: () {
               setState(() {
                 _invalidarResultado();
@@ -436,7 +376,9 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
             label: const Text('Eliminar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.buttonFill(AppColors.success),
+            ),
             onPressed: () {
               final nuevoCosto = int.tryParse(costoController.text);
               if (nuevoCosto != null) {
@@ -504,7 +446,9 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
             ),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.success),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.buttonFill(AppColors.success),
+            ),
             onPressed: () {
               final costo = int.tryParse(costoController.text) ?? 1;
               final colorAleatorio =
@@ -825,7 +769,9 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
                     const SizedBox(height: 20),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.success,
+                        backgroundColor: AppColors.buttonFill(
+                          AppColors.success,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

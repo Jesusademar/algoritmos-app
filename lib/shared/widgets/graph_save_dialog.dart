@@ -48,7 +48,7 @@ Future<String?> _showSaveDialog(
               ? 'Descarga iniciada: $name.json'
               : 'Archivo guardado: $name.json',
         ),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.successSoft,
       ),
     );
   }

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
 import 'package:app_grafos/app/navigation/algorithm_examples.dart';
-import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
-import 'package:app_grafos/features/sorting/presentation/screens/sorting_visualization_screen.dart';
 import 'package:app_grafos/features/assignment/presentation/screens/asignacion_screen.dart';
 import 'package:app_grafos/features/binary_tree/presentation/screens/binary_tree_screen.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
 import 'package:app_grafos/features/graph/presentation/screens/grafo_screen.dart';
 import 'package:app_grafos/features/johnson/presentation/screens/johnson_screen.dart';
+import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
 import 'package:app_grafos/features/sorting/presentation/screens/sorting_methods_screen.dart';
+import 'package:app_grafos/features/sorting/presentation/screens/sorting_visualization_screen.dart';
 
 /// Catálogo único utilizado por el dashboard y el menú.
 class AlgorithmModule {
@@ -116,7 +116,7 @@ const algorithmModules = [
     icon: Icons.sort_rounded,
     color: AppColors.sorting,
     description: 'Selection Sort busca el menor elemento en cada pasada. Insertion Sort inserta cada valor en la parte ya ordenada. Merge Sort combina mitades ordenadas y Shell Sort usa saltos decrecientes. Los cuatro permiten estudiar cómo se transforma un arreglo paso a paso.',
-    input: 'Hasta 20 números entre 1 y 100.',
+    input: 'Enteros por teclado o aleatorios con cantidad y rango definidos por ti.',
     output: 'Comparaciones, movimientos y el arreglo ordenado.',
     tip: 'Compara las operaciones al terminar: Merge Sort tiene una cota de O(n log n). Shell Sort usa saltos decrecientes y esta versión tiene una cota de O(n²) en el peor caso.',
     screen: SortingMethodsScreen(),

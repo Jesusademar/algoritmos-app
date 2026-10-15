@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 /// Paints an ultra-realistic, professional bowling pin with studio gloss, depth,
 /// and dynamic scaling based on its numerical value.
 class BowlingPinPainter extends CustomPainter {
-  final int value;
-  final int maxValue;
+  final Object value;
+  final double relativeValue;
   final Color color;
   final double animationProgress;
 
   const BowlingPinPainter({
     required this.value,
-    required this.maxValue,
+    required this.relativeValue,
     required this.color,
     this.animationProgress = 1.0,
   });
@@ -20,9 +20,7 @@ class BowlingPinPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Factor de escala dinámico según el valor (mínimo 0.75, máximo 1.15)
-    final double valueScale = maxValue > 0
-        ? 0.75 + (0.4 * (value / maxValue).clamp(0.0, 1.0))
-        : 1.0;
+    final double valueScale = 0.75 + 0.4 * relativeValue.clamp(0.0, 1.0);
 
     final double w = size.width * valueScale;
     final double h = size.height;
@@ -156,8 +154,10 @@ class BowlingPinPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
+      maxLines: 1,
+      ellipsis: '…',
     );
-    textPainter.layout();
+    textPainter.layout(maxWidth: w * 0.7);
 
     final double bellyLocalY = maxHeight * 0.62;
     final double textX = (w / 2) - (textPainter.width / 2);
@@ -171,7 +171,7 @@ class BowlingPinPainter extends CustomPainter {
   @override
   bool shouldRepaint(BowlingPinPainter oldDelegate) {
     return oldDelegate.value != value ||
-        oldDelegate.maxValue != maxValue ||
+        oldDelegate.relativeValue != relativeValue ||
         oldDelegate.color != color ||
         oldDelegate.animationProgress != animationProgress;
   }

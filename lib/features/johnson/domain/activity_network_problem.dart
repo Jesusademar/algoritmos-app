@@ -20,7 +20,6 @@ class ActivityNetworkProblem {
     required List<String> nodeIds,
     required List<ActivityEdge> edges,
     required this.startNodeId,
-    required this.initialValue,
     required this.mode,
   }) : nodeIds = List.unmodifiable(nodeIds),
        edges = List.unmodifiable(edges);
@@ -28,6 +27,8 @@ class ActivityNetworkProblem {
   final List<String> nodeIds;
   final List<ActivityEdge> edges;
   final String? startNodeId;
-  final int initialValue;
+
+  /// Todos los proyectos comienzan en tiempo cero.
+  final int initialValue = 0;
   final NetworkOptimizationMode mode;
 }

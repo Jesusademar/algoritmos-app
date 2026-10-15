@@ -55,7 +55,7 @@ void main() {
       ) as Map<String, dynamic>;
       for (final change in <Map<String, dynamic>>[
         {'formato': 'logiverse.binary_tree'},
-        {'version': 2},
+        {'version': 3},
         {'algoritmo': 'otro'},
         {'sentido': 'otro'},
         {'numeros': []},
@@ -69,9 +69,9 @@ void main() {
           'numeros': [1.5],
         },
         {
-          'numeros': ['1'],
+          'numeros': ['no entero'],
         },
-        {'numeros': List.filled(21, 1)},
+        {'numeros': List.filled(101, 1)},
         {'velocidad': 0},
         {'velocidad': '2'},
         {'paso': -1},

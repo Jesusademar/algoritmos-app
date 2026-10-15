@@ -9,9 +9,11 @@ import 'package:app_grafos/features/graph/presentation/widgets/graph_painter.dar
 import 'package:app_grafos/shared/graph_editor/geometry/offset_geometry.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 import 'package:app_grafos/shared/persistence/graph_document.dart';
 import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
+import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 
@@ -84,7 +86,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('✨ ¡Grafo cargado exitosamente al lienzo!'),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.successSoft,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -100,123 +102,10 @@ class _GrafoScreenState extends State<GrafoScreen> {
   }
 
   void mostrarAyuda() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppColors.surface,
-        title: const Row(
-          children: [
-            Icon(Icons.auto_stories_rounded, color: AppColors.graph, size: 28),
-            SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                'Manual y Guía de Uso del Sistema',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 600,
-          height: 480,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildAyudaItem(
-                  icon: Icons.hub_rounded,
-                  titulo: '1. Creación y Desplazamiento de Nodos (Vértices)',
-                  descripcion: '• Haz clic izquierdo en cualquier espacio libre del lienzo interactivo para desplegar el diálogo de creación e ingresar el nombre identificador único del vértice.\n• Mantén presionado y arrastra cualquier nodo libremente por el plano para acomodar la red y optimizar la visualización geométrica en tiempo real.',
-                ),
-                const SizedBox(height: 18),
-                _buildAyudaItem(
-                  icon: Icons.timeline_rounded,
-                  titulo: '2. Enlace de Aristas y Conexiones',
-                  descripcion: '• Haz clic primero en un nodo origen (se resaltará automáticamente con un borde índole destacado) y luego haz clic en el nodo destino deseado.\n• En el panel flotante emergente, especifica el peso numérico de la arista (si se deja vacío, el valor predeterminado es 0) y define si el enlace será de tipo "Sin dirección" o "Unidireccional".',
-                ),
-                const SizedBox(height: 18),
-                _buildAyudaItem(
-                  icon: Icons.edit_outlined,
-                  titulo: '3. Edición y Eliminación Dinámica',
-                  descripcion: '• Utiliza el clic derecho (secundario), doble clic o mantén presionado prolongadamente sobre cualquier nodo o arista para acceder al menú de opciones avanzadas.\n• Podrás modificar pesos numéricos, renombrar etiquetas de vértices o eliminar elementos de forma segura.',
-                ),
-                const SizedBox(height: 18),
-                _buildAyudaItem(
-                  icon: Icons.grid_on_rounded,
-                  titulo: '4. Matriz de Adyacencia y Cálculo de Grados Δ(G)',
-                  descripcion: '• Activa el botón superior "Matriz" para desplegar el panel analítico lateral derecho con la representación matricial completa de la red.\n• El grado de cada vértice y el Grado Máximo del Grafo Δ(G) se calculan rigurosamente en tiempo real.',
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.graph,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              '¡Entendido, comencemos!',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAyudaItem({
-    required IconData icon,
-    required String titulo,
-    required String descripcion,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.graphSoft,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: AppColors.graph, size: 22),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14.5,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                descripcion,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    showAlgorithmManual(
+      context,
+      AlgorithmManual.graph,
+      accent: AppColors.graph,
     );
   }
 
@@ -276,7 +165,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.graph,
+              backgroundColor: AppColors.buttonFill(AppColors.graph),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -356,7 +245,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.graph,
+              backgroundColor: AppColors.buttonFill(AppColors.graph),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -417,7 +306,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.graph,
+              backgroundColor: AppColors.buttonFill(AppColors.graph),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -654,7 +543,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
                   const SizedBox(width: 12),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.graph,
+                      backgroundColor: AppColors.buttonFill(AppColors.graph),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -688,7 +577,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
                       'Conectar Arista',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.background,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
@@ -728,7 +617,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.buttonFill(Colors.redAccent),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -780,7 +669,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.buttonFill(Colors.redAccent),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -860,7 +749,7 @@ class _GrafoScreenState extends State<GrafoScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.graph,
+              backgroundColor: AppColors.buttonFill(AppColors.graph),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

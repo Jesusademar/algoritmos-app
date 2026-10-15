@@ -30,13 +30,10 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.textContaining('Big O:'), findsNothing);
-        await tester.enterText(find.byType(TextField), '0, 4');
+        await tester.enterText(find.byType(TextField), '1.5, 4');
         await tester.tap(find.text('Aplicar números'));
         await tester.pumpAndSettle();
-        expect(
-          find.textContaining('Todos los números deben estar entre'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('Utiliza números enteros'), findsOneWidget);
         await tester.enterText(find.byType(TextField), '9, 3, 6, 3');
         await tester.tap(find.text('Aplicar números'));
         await tester.pumpAndSettle();

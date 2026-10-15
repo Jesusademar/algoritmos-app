@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
+import 'package:app_grafos/features/sorting/domain/sorting_numbers.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_order.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_problem.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_solver.dart';
@@ -12,7 +13,7 @@ class SortingDocument {
     required this.name,
     required this.algorithm,
     required this.order,
-    required List<int> originalArray,
+    required List<Object> originalArray,
     this.speed = 1,
     this.stepIndex = 0,
   }) : originalArray = List.unmodifiable(originalArray);
@@ -20,17 +21,17 @@ class SortingDocument {
   final String name;
   final SortingAlgorithm algorithm;
   final SortingOrder order;
-  final List<int> originalArray;
+  final List<Object> originalArray;
   final double speed;
   final int stepIndex;
 
   String encode({String? name}) => const JsonEncoder.withIndent('  ').convert({
     'formato': 'logiverse.sorting',
-    'version': 1,
+    'version': 2,
     'nombreArchivo': name ?? this.name,
     'algoritmo': algorithm.name,
     'sentido': order.name,
-    'numeros': originalArray,
+    'numeros': originalArray.map((value) => value.toString()).toList(),
     'velocidad': speed,
     'paso': stepIndex,
   });
@@ -39,7 +40,7 @@ class SortingDocument {
     final data = jsonDecode(json);
     if (data is! Map ||
         data['formato'] != 'logiverse.sorting' ||
-        data['version'] != 1) {
+        (data['version'] != 1 && data['version'] != 2)) {
       throw const FormatException(
         'El archivo no es un documento de ordenamiento compatible.',
       );
@@ -58,12 +59,19 @@ class SortingDocument {
       );
     }
     final rawArray = data['numeros'];
-    if (rawArray is! List || rawArray.any((value) => value is! int)) {
+    if (rawArray is! List ||
+        rawArray.any(
+          (value) => data['version'] == 1 ? value is! int : value is! String,
+        )) {
       throw const FormatException(
         'El archivo debe contener una lista de números enteros.',
       );
     }
-    final array = List<int>.from(rawArray);
+    final array = data['version'] == 1
+        ? List<Object>.from(rawArray)
+        : rawArray
+              .map((value) => SortingNumbers.parse(value as String))
+              .toList();
     final (valid, error) = SortingValidator.validateArray(array);
     if (!valid) {
       throw FormatException(error ?? 'Los números del archivo no son válidos.');

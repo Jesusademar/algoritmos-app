@@ -149,21 +149,19 @@ void main() {
     await tester.ensureVisible(find.text('Nuevo ordenamiento'));
     await tester.tap(find.text('Nuevo ordenamiento'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '0, 101');
+    final manualInput = find.widgetWithText(TextField, 'Números a ordenar');
+    await tester.enterText(manualInput, '1.5, abc');
     await tester.ensureVisible(find.text('Usar estos números'));
     await tester.tap(find.text('Usar estos números'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<TextField>(find.byType(TextField)).decoration!.errorText,
+      tester.widget<TextField>(manualInput).decoration!.errorText,
       isNotNull,
     );
     expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '9, 2, 6');
+    await tester.enterText(manualInput, '9, 2, 6');
     await tester.pump();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).decoration!.errorText,
-      isNull,
-    );
+    expect(tester.widget<TextField>(manualInput).decoration!.errorText, isNull);
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);

@@ -17,7 +17,7 @@ class SortingResult {
   int get stepCount => steps.length;
 
   /// The final sorted array
-  List<int> get finalArray => steps.isNotEmpty ? steps.last.array : [];
+  List<Object> get finalArray => steps.isNotEmpty ? steps.last.array : [];
 
   /// Whether the array is fully sorted
   bool get isComplete => steps.isNotEmpty;

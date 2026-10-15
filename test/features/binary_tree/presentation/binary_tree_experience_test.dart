@@ -237,7 +237,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Manual de uso'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('6. Guardar y cargar'));
+        await tester.ensureVisible(find.text('Guardar y cargar'));
         await tester.pumpAndSettle();
         await tester.pumpAndSettle();
         await tester.tap(find.text('¡Entendido!'));

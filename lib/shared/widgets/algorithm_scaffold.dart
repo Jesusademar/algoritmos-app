@@ -29,7 +29,16 @@ class AlgorithmScaffold extends StatelessWidget {
       data: theme.copyWith(
         colorScheme: theme.colorScheme.copyWith(
           primary: accent,
-          onPrimary: AppColors.background,
+          onPrimary: AppColors.text,
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: theme.filledButtonTheme.style?.copyWith(
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.disabled)
+                  ? AppColors.surfaceMuted
+                  : AppColors.buttonFill(accent),
+            ),
+          ),
         ),
         progressIndicatorTheme: theme.progressIndicatorTheme.copyWith(
           color: accent,

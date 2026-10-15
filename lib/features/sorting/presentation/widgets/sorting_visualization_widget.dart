@@ -20,60 +20,73 @@ class SortingVisualizationWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlgorithmWorkspace(
-      canvas: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                provider.order.description,
-                style: const TextStyle(
-                  color: AppColors.sorting,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${provider.currentArray.length} elementos · ${provider.algorithm.displayName}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textMuted),
-              ),
-              if (provider.isComplete) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Ordenamiento completado · Big O: ${provider.executionComplexity}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.successText,
-                    fontWeight: FontWeight.w600,
+      isEmpty: !provider.hasData,
+      accent: AppColors.sorting,
+      emptyIcon: Icons.sort_rounded,
+      emptyTitle: 'Aún no hay números',
+      emptyDescription:
+          'Pulsa Nuevo ordenamiento para ingresar o generar datos.',
+      canvas: !provider.hasData
+          ? const SizedBox.expand()
+          : CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.all(24),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Text(
+                          provider.order.description,
+                          style: const TextStyle(
+                            color: AppColors.sorting,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${provider.currentArray.length} elementos · ${provider.algorithm.displayName}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textMuted),
+                        ),
+                        if (provider.isComplete) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            'Ordenamiento completado · Big O: ${provider.executionComplexity}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.successText,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-              const SizedBox(height: 28),
-              Wrap(
-                spacing: 24,
-                runSpacing: 32,
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: List.generate(
-                  provider.currentArray.length,
-                  (index) => SizedBox(
-                    width: 75,
-                    height: 155,
-                    child: BowlingPinWidget(
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  sliver: SliverGrid.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 99,
+                          mainAxisExtent: 155,
+                          crossAxisSpacing: 24,
+                          mainAxisSpacing: 32,
+                        ),
+                    itemCount: provider.currentArray.length,
+                    itemBuilder: (context, index) => BowlingPinWidget(
                       value: provider.currentArray[index],
-                      maxValue: 100,
+                      relativeValue: provider.scale.fraction(
+                        provider.currentArray[index],
+                      ),
                       color: provider.getColorForIndex(index),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
+              ],
+            ),
       panel: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -116,15 +129,26 @@ class SortingVisualizationWidget extends StatelessWidget {
             const SizedBox(height: 16),
             AlgorithmPanelSection(
               title: 'Estado del arreglo',
-              child: Text(
-                provider.currentArray.join(' | '),
-                style: const TextStyle(fontFamily: 'monospace', height: 1.5),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: SingleChildScrollView(
+                  primary: false,
+                  child: SelectionArea(
+                    child: Text(
+                      provider.hasData
+                          ? provider.currentArray.join(' | ')
+                          : 'Sin datos',
+                      style: const TextStyle(fontFamily: 'Roboto', height: 1.5),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             AlgorithmPanelSection(
-              title:
-                  'Paso ${provider.currentStepIndex + 1} de ${provider.totalSteps}',
+              title: provider.hasData
+                  ? 'Paso ${provider.currentStepIndex + 1} de ${provider.totalSteps}'
+                  : 'Ningún ordenamiento activo',
               highlighted: true,
               child: Text(
                 provider.description,
@@ -133,7 +157,9 @@ class SortingVisualizationWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              provider.isComplete
+              !provider.hasData
+                  ? 'Sin datos para ordenar'
+                  : provider.isComplete
                   ? 'Ordenamiento completado'
                   : 'Progreso del ordenamiento',
               style: const TextStyle(fontWeight: FontWeight.w600),
@@ -160,7 +186,7 @@ class SortingVisualizationWidget extends StatelessWidget {
                   label: const Text('Anterior'),
                 ),
                 FilledButton.icon(
-                  onPressed: provider.isComplete
+                  onPressed: !provider.hasData || provider.isComplete
                       ? null
                       : provider.togglePlayPause,
                   icon: Icon(
@@ -172,7 +198,9 @@ class SortingVisualizationWidget extends StatelessWidget {
                   label: Text(provider.isPlaying ? 'Pausar' : 'Reproducir'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: provider.isComplete ? null : provider.nextStep,
+                  onPressed: !provider.hasData || provider.isComplete
+                      ? null
+                      : provider.nextStep,
                   icon: const Icon(Icons.skip_next_rounded, size: 18),
                   label: const Text('Siguiente'),
                 ),
@@ -185,9 +213,21 @@ class SortingVisualizationWidget extends StatelessWidget {
               runSpacing: 8,
               children: [
                 OutlinedButton.icon(
-                  onPressed: provider.reset,
+                  onPressed: provider.hasData ? provider.reset : null,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Reiniciar'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: !provider.hasData || provider.isComplete
+                      ? null
+                      : provider.finish,
+                  icon: const Icon(Icons.skip_next_rounded, size: 18),
+                  label: const Text('Ver resultado'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: provider.hasData ? provider.clear : null,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                  label: const Text('Limpiar'),
                 ),
                 FilledButton.icon(
                   onPressed: onNewSort,

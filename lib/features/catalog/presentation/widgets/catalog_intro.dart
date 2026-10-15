@@ -28,6 +28,7 @@ class CatalogIntro extends StatelessWidget {
               Text(
                 'Selecciona un Algoritmo',
                 style: TextStyle(
+                  color: AppColors.text,
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                   height: 1.2,

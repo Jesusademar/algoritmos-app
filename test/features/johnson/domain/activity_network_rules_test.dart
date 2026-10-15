@@ -45,7 +45,6 @@ void main() {
               nodeIds: ['a', 'b', 'c'],
               edges: invalid,
               startNodeId: 'a',
-              initialValue: 0,
               mode: NetworkOptimizationMode.maximize,
             ),
           ),

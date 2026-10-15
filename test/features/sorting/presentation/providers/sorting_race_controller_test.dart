@@ -22,7 +22,7 @@ void main() {
     for (final method in SortingAlgorithm.values) {
       expect(race.step(method).array, [9, 3, 6, 3]);
     }
-    expect(() => race.setNumbers([101]), throwsFormatException);
+    expect(() => race.setNumbers([]), throwsFormatException);
     expect(race.numbers, [9, 3, 6, 3]);
     race.setOrder(SortingOrder.descending);
     race.finish();

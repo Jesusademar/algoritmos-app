@@ -6,9 +6,9 @@ import 'package:app_grafos/app/app_theme.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_document.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_order.dart';
-import 'package:app_grafos/features/sorting/domain/sorting_validator.dart';
 import 'package:app_grafos/features/sorting/presentation/providers/sorting_visualization_provider.dart';
 import 'package:app_grafos/features/sorting/presentation/widgets/sorting_help_menu.dart';
+import 'package:app_grafos/features/sorting/presentation/widgets/sorting_input_dialog.dart';
 import 'package:app_grafos/features/sorting/presentation/widgets/sorting_visualization_widget.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
@@ -17,7 +17,7 @@ import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 /// Main screen for sorting visualization
 class SortingVisualizationScreen extends StatefulWidget {
   final SortingAlgorithm algorithm;
-  final List<int> initialArray;
+  final List<Object> initialArray;
   final SortingOrder initialOrder;
   final double initialSpeed;
   final int initialStepIndex;
@@ -73,21 +73,19 @@ class _SortingVisualizationScreenState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _InputDialog(
-        onRandomArray: (size) {
-          final array = SortingValidator.generateRandomArray(size);
-          Navigator.pop(context); // Cierra diálogo
-          _resetWithNewArray(array);
-        },
-        onManualArray: (array) {
-          Navigator.pop(context); // Cierra diálogo
+      builder: (context) => SortingInputDialog(
+        initialQuantity: _provider.hasData
+            ? _provider.originalArray.length
+            : 10,
+        onArray: (array) {
+          Navigator.pop(context);
           _resetWithNewArray(array);
         },
       ),
     );
   }
 
-  void _resetWithNewArray(List<int> array) {
+  void _resetWithNewArray(List<Object> array) {
     setState(() {
       _stopAnimation();
       final order = _provider.order;
@@ -98,7 +96,7 @@ class _SortingVisualizationScreenState
   }
 
   SortingVisualizationProvider _createProvider(
-    List<int> array,
+    List<Object> array,
     SortingOrder order, {
     double speed = 1,
     int stepIndex = 0,
@@ -209,7 +207,7 @@ class _SortingVisualizationScreenState
             actions: [
               SortingHelpMenu(
                 onOpen: _provider.pause,
-                onSave: _save,
+                onSave: _provider.hasData ? _save : null,
                 onLoad: _load,
               ),
             ],
@@ -220,132 +218,6 @@ class _SortingVisualizationScreenState
           ),
         );
       },
-    );
-  }
-}
-
-/// Input dialog for array selection
-class _InputDialog extends StatefulWidget {
-  final Function(int) onRandomArray;
-  final Function(List<int>) onManualArray;
-
-  const _InputDialog({
-    required this.onRandomArray,
-    required this.onManualArray,
-  });
-
-  @override
-  State<_InputDialog> createState() => _InputDialogState();
-}
-
-class _InputDialogState extends State<_InputDialog> {
-  late TextEditingController _manualController;
-  int _randomSize = 10;
-  String? _manualError;
-
-  @override
-  void initState() {
-    super.initState();
-    _manualController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _manualController.dispose();
-    super.dispose();
-  }
-
-  void _submitManualInput() {
-    final (numbers, error) = SortingValidator.parseInputString(
-      _manualController.text,
-    );
-    if (error != null) {
-      setState(() => _manualError = error);
-      return;
-    }
-    widget.onManualArray(numbers);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Ingresa los números para ordenar'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Números deben estar entre 1 y 100, máximo 20 elementos',
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 16),
-
-            // Random array option
-            const Text(
-              'Opción 1: Números aleatorios',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _randomSize.toDouble(),
-                    min: 1,
-                    max: 20,
-                    divisions: 19,
-                    label: '$_randomSize',
-                    onChanged: (value) {
-                      setState(() => _randomSize = value.toInt());
-                    },
-                  ),
-                ),
-                Text('$_randomSize'),
-              ],
-            ),
-            ElevatedButton(
-              onPressed: () => widget.onRandomArray(_randomSize),
-              child: const Text('Generar aleatorios'),
-            ),
-
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 24),
-
-            // Manual input option
-            const Text(
-              'Opción 2: Ingresar manualmente',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _manualController,
-              onSubmitted: (_) => _submitManualInput(),
-              onChanged: (_) {
-                if (_manualError != null) setState(() => _manualError = null);
-              },
-              decoration: InputDecoration(
-                labelText: 'Números a ordenar',
-                hintText: 'Ej: 5,3,8,1,9',
-                helperText: 'Números separados por comas',
-                errorText: _manualError,
-                errorMaxLines: 3,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _submitManualInput,
-              child: const Text('Usar estos números'),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-      ],
     );
   }
 }

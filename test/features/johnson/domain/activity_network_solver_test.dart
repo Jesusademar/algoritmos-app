@@ -18,7 +18,6 @@ void main() {
         nodeIds: const ['a', 'b', 'c', 'd'],
         edges: edges,
         startNodeId: 'a',
-        initialValue: 0,
         mode: NetworkOptimizationMode.maximize,
       ),
     );
@@ -38,7 +37,6 @@ void main() {
           ActivityEdge(sourceId: 'a', targetId: 'c', duration: 2),
         ],
         startNodeId: 'a',
-        initialValue: 0,
         mode: NetworkOptimizationMode.minimize,
       ),
     );

@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -11,16 +10,22 @@ import 'package:app_grafos/features/johnson/domain/activity_network_solver.dart'
 import 'package:app_grafos/features/johnson/presentation/widgets/activity_network_painter.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 import 'package:app_grafos/shared/persistence/graph_document.dart';
 import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
+import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
-import 'package:app_grafos/shared/widgets/manual_step.dart';
 
 class JohnsonScreen extends StatefulWidget {
-  const JohnsonScreen({super.key, this.initialDocument});
+  const JohnsonScreen({
+    super.key,
+    this.initialDocument,
+    this.fileService = const GraphFileService(),
+  });
   final GraphDocument? initialDocument;
+  final GraphFileService fileService;
 
   @override
   State<JohnsonScreen> createState() => _JohnsonScreenState();
@@ -46,8 +51,6 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
   bool esMaximizar = true;
 
   String? nodoInicialSeleccionadoId;
-  final valorInicialNodoController = TextEditingController(text: '0');
-  final valorNodoController = TextEditingController(text: '0');
 
   final nombreController = TextEditingController();
   final pesoAristaController = TextEditingController();
@@ -69,13 +72,29 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
     final initial = widget.initialDocument;
     if (initial == null) return;
     final document = _documentCodec.decode(_documentCodec.encode(initial));
+    _aplicarDocumento(document);
+  }
+
+  void _aplicarDocumento(GraphDocument document) {
     nodos = document.nodes.toList();
+    for (final nodo in nodos) {
+      nodo.valorInicial = 0;
+    }
     conexiones = document.connections.toList();
     nombreArchivoController.text = document.name;
-    nodoInicialSeleccionadoId =
-        document.metadata['nodoInicialSeleccionadoId'] ??
-        (nodos.isEmpty ? null : nodos.first.id);
+    final inicio = document.metadata['nodoInicialSeleccionadoId'];
+    nodoInicialSeleccionadoId = nodos.any((nodo) => nodo.id == inicio)
+        ? inicio as String
+        : (nodos.isEmpty ? null : nodos.first.id);
     esMaximizar = document.metadata['esMaximizar'] ?? true;
+  }
+
+  @override
+  void dispose() {
+    nombreController.dispose();
+    pesoAristaController.dispose();
+    nombreArchivoController.dispose();
+    super.dispose();
   }
 
   void limpiarTodo() {
@@ -91,12 +110,11 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
       proyectoDuracionTotal = 0;
       mostrarProceso = false;
       nodoInicialSeleccionadoId = null;
-      valorInicialNodoController.text = '0';
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('🗑️ Lienzo y datos limpiados correctamente.'),
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.errorSoft,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -104,76 +122,10 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
   }
 
   void mostrarManualAyuda() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppColors.surface,
-        title: const Row(
-          children: [
-            Icon(
-              Icons.help_outline_rounded,
-              color: AppColors.johnson,
-              size: 24,
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Manual Extendido - Red de Actividades',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 540,
-          height: 480,
-          child: ListView(
-            children: const [
-              ManualStep(
-                numero: '1',
-                titulo: 'Creación de Nodos (Eventos)',
-                descripcion: 'Haz clic en cualquier espacio vacío del lienzo blanco para desplegar el formulario. El primer nodo creado será automáticamente el nodo raíz y te solicitará su valor inicial.',
-              ),
-              ManualStep(
-                numero: '2',
-                titulo: 'Conexión y Ponderación',
-                descripcion: 'Haz clic primero en el nodo de origen y luego en el de destino para establecer la actividad y su duración obligatoria. No se permiten bucles, conexiones inversas ni ciclos.',
-              ),
-              ManualStep(
-                numero: '3',
-                titulo: 'Maximizar o Minimizar',
-                descripcion: 'Alterna el modo en la barra superior. En el modo Minimizar, el sistema calcula el camino de costo mínimo (ruta crítica inversa).',
-              ),
-              ManualStep(
-                numero: '4',
-                titulo: 'Valor Inicial del Nodo Raíz',
-                descripcion: 'Puedes modificar el valor inicial del nodo raíz en el panel lateral de resultados en cualquier momento.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.johnson,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '¡Entendido!',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+    showAlgorithmManual(
+      context,
+      AlgorithmManual.johnson,
+      accent: AppColors.johnson,
     );
   }
 
@@ -190,22 +142,18 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         metadata: {
           'esMaximizar': esMaximizar,
           'nodoInicialSeleccionadoId': nodoInicialSeleccionadoId,
-          'valorInicialNodo': valorInicialNodoController.text,
+          'valorInicialNodo': 0,
         },
       ),
+      service: widget.fileService,
     );
     if (savedName != null && mounted) nombreArchivoController.text = savedName;
   }
 
   Future<void> cargarArchivoJson() async {
     try {
-      const typeGroup = GraphFileService.jsonType;
-      final XFile? file = await openFile(
-        acceptedTypeGroups: <XTypeGroup>[typeGroup],
-      );
-      if (file == null) return;
-
-      final contenido = await file.readAsString();
+      final contenido = await widget.fileService.readJson();
+      if (contenido == null) return;
       final document = _documentCodec.decode(contenido);
 
       if (!mounted) return;
@@ -222,25 +170,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
       }
 
       setState(() {
-        nombreArchivoController.text = document.name;
-        if (document.metadata['esMaximizar'] != null) {
-          esMaximizar = document.metadata['esMaximizar'];
-        }
-        if (document.metadata['nodoInicialSeleccionadoId'] != null) {
-          nodoInicialSeleccionadoId =
-              document.metadata['nodoInicialSeleccionadoId'];
-        }
-        if (document.metadata['valorInicialNodo'] != null) {
-          valorInicialNodoController.text = document
-              .metadata['valorInicialNodo']
-              .toString();
-        }
-        nodos = document.nodes.toList();
-        conexiones = document.connections.toList();
-
-        if (nodoInicialSeleccionadoId == null && nodos.isNotEmpty) {
-          nodoInicialSeleccionadoId = nodos.first.id;
-        }
+        _aplicarDocumento(document);
 
         nodoOrigenParaConexion = null;
         tiemposTempranos.clear();
@@ -254,7 +184,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('✨ ¡Archivo cargado exitosamente al lienzo!'),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.successSoft,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -272,9 +202,6 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
   void agregarNodo(Offset posicion) {
     nombreController.clear();
     bool esPrimero = nodos.isEmpty;
-    if (esPrimero) {
-      valorNodoController.text = valorInicialNodoController.text;
-    }
 
     showDialog(
       context: context,
@@ -337,38 +264,9 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
             ),
             if (esPrimero) ...[
               const SizedBox(height: 16),
-              TextField(
-                controller: valorNodoController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w600,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Insertar valor inicial',
-                  labelStyle: const TextStyle(color: AppColors.textMuted),
-                  prefixIcon: const Icon(
-                    Icons.line_weight_rounded,
-                    color: AppColors.johnson,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: AppColors.johnson,
-                      width: 2,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: AppColors.background,
-                ),
+              const Text(
+                'Tiempo inicial: 0',
+                style: TextStyle(color: AppColors.textSecondary),
               ),
             ],
           ],
@@ -386,7 +284,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.johnson,
+              backgroundColor: AppColors.buttonFill(AppColors.johnson),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -404,10 +302,6 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
                   );
                   if (esPrimero) {
                     nodoInicialSeleccionadoId = nuevoId;
-                    if (valorNodoController.text.isNotEmpty) {
-                      valorInicialNodoController.text =
-                          valorNodoController.text;
-                    }
                   }
                 });
                 Navigator.pop(context);
@@ -506,7 +400,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.johnson,
+              backgroundColor: AppColors.buttonFill(AppColors.johnson),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -704,7 +598,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
                   const SizedBox(width: 12),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.johnson,
+                      backgroundColor: AppColors.buttonFill(AppColors.johnson),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -745,7 +639,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
                       'Conectar',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.background,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
@@ -822,7 +716,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.johnson,
+              backgroundColor: AppColors.buttonFill(AppColors.johnson),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -878,7 +772,6 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           )
           .toList(),
       startNodeId: nodoInicialSeleccionadoId,
-      initialValue: int.tryParse(valorInicialNodoController.text) ?? 0,
       mode: esMaximizar
           ? NetworkOptimizationMode.maximize
           : NetworkOptimizationMode.minimize,
@@ -899,7 +792,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         content: Text(
           '✨ ¡Red calculada (${esMaximizar ? "Maximizar" : "Minimizar"}) con éxito! Valor: $proyectoDuracionTotal.',
         ),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.successSoft,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -1200,44 +1093,11 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Valor Inicial del Nodo Raíz:',
+                                'Tiempo inicial: 0',
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: valorInicialNodoController,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(
-                                  color: AppColors.text,
+                                  color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 13,
                                 ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.border,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.border,
-                                    ),
-                                  ),
-                                  filled: true,
-                                  fillColor: AppColors.background,
-                                ),
-                                onChanged: (_) => calcularRedActividades(),
                               ),
                               const SizedBox(height: 14),
                               Container(
@@ -1296,7 +1156,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
                                       ),
                                     ),
                                     child: Text(
-                                      'Nodo [${n.nombre}]${esRaiz ? " (Raíz)" : ""} ➔ ES/EF: $tTemp | LS/LF: $tTard | H = $holg',
+                                      'Nodo [${n.nombre}]${esRaiz ? " (Raíz)" : ""} | ES/EF: $tTemp | LS/LF: $tTard | H = $holg',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: AppColors.textSecondary,

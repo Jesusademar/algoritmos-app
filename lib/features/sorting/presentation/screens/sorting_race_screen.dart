@@ -5,8 +5,11 @@ import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_validator.dart';
 import 'package:app_grafos/features/sorting/presentation/providers/sorting_race_controller.dart';
 import 'package:app_grafos/features/sorting/presentation/screens/sorting_visualization_screen.dart';
+import 'package:app_grafos/features/sorting/presentation/widgets/sorting_input_dialog.dart';
 import 'package:app_grafos/features/sorting/presentation/widgets/sorting_order_selector.dart';
+import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 import 'package:app_grafos/shared/widgets/algorithm_card_grid.dart';
+import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/futuristic_surface.dart';
 import 'package:app_grafos/shared/widgets/neon_icon.dart';
@@ -42,7 +45,7 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
     super.dispose();
   }
 
-  void _apply(List<int> numbers) {
+  void _apply(List<Object> numbers) {
     _race.setNumbers(numbers);
     _numbers.text = numbers.join(', ');
     FocusManager.instance.primaryFocus?.unfocus();
@@ -56,6 +59,12 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
       return;
     }
     _apply(numbers);
+  }
+
+  void _clear() {
+    _race.clear();
+    _numbers.clear();
+    setState(() => _error = null);
   }
 
   void _details(SortingAlgorithm algorithm) {
@@ -72,24 +81,26 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
     );
   }
 
-  void _help() {
+  void _randomInput() {
     _race.pause();
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cómo comparar los métodos'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Los cuatro métodos reciben los mismos números y el mismo sentido. Puedes reproducir, pausar, avanzar un paso o mover la línea de tiempo.\n\nCada turno muestra un paso de cada método; la carrera visual no mide tiempo real. Al terminar verás sus comparaciones, movimientos y Big O. Las escrituras, desplazamientos e intercambios representan operaciones distintas.\n\nAbre el detalle de un método para seguir explorando, guardar sus datos o consultar su manual.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
-          ),
-        ],
+      builder: (context) => SortingInputDialog(
+        initialQuantity: _race.numbers.length,
+        onArray: (numbers) {
+          Navigator.pop(context);
+          _apply(numbers);
+        },
       ),
+    );
+  }
+
+  void _help() {
+    _race.pause();
+    showAlgorithmManual(
+      context,
+      AlgorithmManual.sortingRace,
+      accent: AppColors.sorting,
     );
   }
 
@@ -150,7 +161,7 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                         onSubmitted: (_) => _submit(),
                         decoration: InputDecoration(
                           labelText: 'Números de la carrera',
-                          helperText: 'Hasta 20 números entre 1 y 100, separados por comas.',
+                          helperText: 'Enteros separados por comas; se admiten negativos y números de cualquier cantidad de cifras.',
                           helperMaxLines: 2,
                           errorText: _error,
                           errorMaxLines: 3,
@@ -177,8 +188,7 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                             child: const Text('Lista invertida'),
                           ),
                           OutlinedButton.icon(
-                            onPressed: () =>
-                                _apply(SortingValidator.generateRandomArray(8)),
+                            onPressed: _randomInput,
                             icon: const Icon(Icons.shuffle_rounded, size: 18),
                             label: const Text('Aleatorios'),
                           ),
@@ -204,7 +214,9 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           FilledButton.icon(
-                            onPressed: _race.isPlaying
+                            onPressed: !_race.hasData
+                                ? null
+                                : _race.isPlaying
                                 ? _race.pause
                                 : _race.play,
                             icon: Icon(
@@ -221,16 +233,28 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                             ),
                           ),
                           OutlinedButton(
-                            onPressed: _race.isComplete ? null : _race.next,
+                            onPressed: !_race.hasData || _race.isComplete
+                                ? null
+                                : _race.next,
                             child: const Text('Un paso'),
                           ),
                           OutlinedButton(
-                            onPressed: _race.isComplete ? null : _race.finish,
+                            onPressed: !_race.hasData || _race.isComplete
+                                ? null
+                                : _race.finish,
                             child: const Text('Ver resultado'),
                           ),
                           TextButton(
-                            onPressed: _race.reset,
+                            onPressed: _race.hasData ? _race.reset : null,
                             child: const Text('Reiniciar'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _race.hasData ? _clear : null,
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Limpiar'),
                           ),
                           for (final speed in [1, 2, 4])
                             ChoiceChip(
@@ -242,7 +266,9 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Turno ${_race.tick + 1} de ${_race.lastTick + 1} · Ritmo visual',
+                        _race.hasData
+                            ? 'Turno ${_race.tick + 1} de ${_race.lastTick + 1} · Ritmo visual'
+                            : 'Sin datos para comparar',
                         style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12,
@@ -267,17 +293,24 @@ class _SortingRaceScreenState extends State<SortingRaceScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                AlgorithmCardGrid(
-                  maxColumns: 4,
-                  children: [
-                    for (final algorithm in SortingAlgorithm.values)
-                      _RaceLane(
-                        race: _race,
-                        algorithm: algorithm,
-                        onDetails: () => _details(algorithm),
-                      ),
-                  ],
-                ),
+                if (!_race.hasData)
+                  const FuturisticPanel(
+                    child: Text(
+                      'Ingresa números o pulsa Aleatorios para comenzar otra carrera.',
+                    ),
+                  ),
+                if (_race.hasData)
+                  AlgorithmCardGrid(
+                    maxColumns: 4,
+                    children: [
+                      for (final algorithm in SortingAlgorithm.values)
+                        _RaceLane(
+                          race: _race,
+                          algorithm: algorithm,
+                          onDetails: () => _details(algorithm),
+                        ),
+                    ],
+                  ),
                 if (_race.isComplete) ...[
                   const SizedBox(height: 20),
                   FuturisticPanel(
@@ -364,18 +397,26 @@ class _RaceLane extends StatelessWidget {
           const SizedBox(height: 18),
           SizedBox(
             height: 112,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (var index = 0; index < step.array.length; index++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: LayoutBuilder(
+              builder: (context, constraints) => ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemExtent: (constraints.maxWidth / step.array.length).clamp(
+                  10.0,
+                  constraints.maxWidth,
+                ),
+                itemCount: step.array.length,
+                itemBuilder: (context, index) => Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Tooltip(
+                      message: step.array[index].toString(),
                       child: AnimatedContainer(
                         duration: MediaQuery.disableAnimationsOf(context)
                             ? Duration.zero
                             : const Duration(milliseconds: 70),
-                        height: 12 + step.array[index] * 0.9,
+                        height:
+                            12 + race.scale.fraction(step.array[index]) * 90,
                         decoration: BoxDecoration(
                           color: done
                               ? AppColors.success
@@ -390,17 +431,26 @@ class _RaceLane extends StatelessWidget {
                       ),
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            step.array.join(' · '),
-            key: ValueKey('race-array-${algorithm.name}'),
-            style: const TextStyle(
-              fontSize: 12,
-              fontFamily: 'Roboto',
-              color: AppColors.textSecondary,
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 120),
+            child: SingleChildScrollView(
+              primary: false,
+              child: SelectionArea(
+                child: Text(
+                  step.array.join(' · '),
+                  key: ValueKey('race-array-${algorithm.name}'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'Roboto',
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),

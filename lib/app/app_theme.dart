@@ -23,6 +23,12 @@ abstract final class AppColors {
   static const graphSoft = Color(0xFF302039);
   static const johnson = Color(0xFFFFD166);
   static const sorting = Color(0xFF41E2F2);
+  static const errorSoft = Color(0xFF3B1929);
+  static const errorText = Color(0xFFFDA4AF);
+
+  /// Fondo de acción con suficiente oscuridad para texto claro y el acento del módulo.
+  static Color buttonFill(Color accent) =>
+      Color.alphaBlend(accent.withValues(alpha: 0.28), surface);
 }
 
 /// Medidas del sistema visual; los módulos comparten el mismo ritmo y límites.
@@ -43,13 +49,13 @@ abstract final class AppTheme {
           brightness: Brightness.dark,
         ).copyWith(
           primary: AppColors.primary,
-          onPrimary: AppColors.background,
+          onPrimary: AppColors.text,
           surface: AppColors.surface,
           onSurface: AppColors.text,
           onSurfaceVariant: AppColors.textMuted,
           outline: AppColors.border,
           outlineVariant: AppColors.border,
-          error: const Color(0xFFFDA4AF),
+          error: AppColors.errorText,
         );
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
@@ -67,7 +73,11 @@ abstract final class AppTheme {
             displayColor: AppColors.text,
           )
           .copyWith(
-            bodyMedium: const TextStyle(fontSize: 14, height: 1.5),
+            bodyMedium: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: AppColors.text,
+            ),
             bodySmall: const TextStyle(
               fontSize: 12,
               height: 1.5,
@@ -76,6 +86,7 @@ abstract final class AppTheme {
             titleMedium: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: AppColors.text,
             ),
           ),
       appBarTheme: const AppBarTheme(
@@ -94,6 +105,10 @@ abstract final class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: AppColors.buttonFill(AppColors.primary),
+          foregroundColor: AppColors.text,
+          disabledBackgroundColor: AppColors.surfaceMuted,
+          disabledForegroundColor: AppColors.textMuted,
           shape: shape,
           minimumSize: const Size(0, 48),
           textStyle: const TextStyle(
@@ -105,8 +120,10 @@ abstract final class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.background,
+          backgroundColor: AppColors.buttonFill(AppColors.primary),
+          foregroundColor: AppColors.text,
+          disabledBackgroundColor: AppColors.surfaceMuted,
+          disabledForegroundColor: AppColors.textMuted,
           elevation: 0,
           shape: shape,
           minimumSize: const Size(0, 44),
@@ -114,6 +131,7 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          disabledForegroundColor: AppColors.textMuted,
           shape: shape,
           side: const BorderSide(color: AppColors.border),
           minimumSize: const Size(0, 44),
@@ -121,6 +139,7 @@ abstract final class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          disabledForegroundColor: AppColors.textMuted,
           shape: shape,
           minimumSize: const Size(0, 44),
         ),
@@ -134,6 +153,7 @@ abstract final class AppTheme {
         side: const BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         labelStyle: const TextStyle(
+          color: AppColors.text,
           fontFamily: 'Roboto',
           fontSize: 13,
           fontWeight: FontWeight.w500,
@@ -166,15 +186,47 @@ abstract final class AppTheme {
       ),
       popupMenuTheme: const PopupMenuThemeData(
         color: AppColors.surface,
+        textStyle: TextStyle(color: AppColors.text),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(16)),
           side: BorderSide(color: AppColors.border),
         ),
       ),
+      listTileTheme: const ListTileThemeData(
+        textColor: AppColors.text,
+        iconColor: AppColors.textSecondary,
+      ),
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        textStyle: TextStyle(color: AppColors.text),
+      ),
+      menuTheme: const MenuThemeData(
+        style: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(AppColors.surface),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      menuButtonTheme: MenuButtonThemeData(
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.disabled)
+                ? AppColors.textMuted
+                : AppColors.text,
+          ),
+        ),
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppColors.primary,
+        selectionColor: AppColors.primary.withValues(alpha: 0.3),
+        selectionHandleColor: AppColors.primary,
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceMuted,
-        contentTextStyle: const TextStyle(color: AppColors.text, height: 1.5),
+        contentTextStyle: const TextStyle(
+          fontFamily: 'Roboto',
+          color: AppColors.text,
+          height: 1.5,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

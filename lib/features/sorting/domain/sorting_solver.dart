@@ -1,6 +1,7 @@
 import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_problem.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_result.dart';
+import 'package:app_grafos/features/sorting/domain/sorting_snapshot.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_step.dart';
 
 /// Solves sorting problems using different algorithms.
@@ -23,15 +24,15 @@ class SortingSolver {
 
   SortingResult _solveSelectionSort(SortingProblem problem) {
     final steps = <SortingStep>[];
-    final array = List<int>.from(problem.originalArray);
-    final sortedIndices = <int>{};
+    final array = SortingArray(problem.originalArray);
+    var sortedCount = 0;
     int totalComparisons = 0;
     int totalSwaps = 0;
 
     // Initial state
     steps.add(
       SortingStep(
-        array: List.from(array),
+        array: array.snapshot,
         sortedIndices: {},
         description:
             'Selection Sort · ${problem.order.description}. ${array.length} elementos por ordenar.',
@@ -48,10 +49,10 @@ class SortingSolver {
         // Step: comparing i and j
         steps.add(
           SortingStep(
-            array: List.from(array),
+            array: array.snapshot,
             comparingIndex1: selectedIndex,
             comparingIndex2: j,
-            sortedIndices: Set.from(sortedIndices),
+            sortedIndices: SortedPrefix(sortedCount),
             description:
                 'Comparando ${array[selectedIndex]} (posición $selectedIndex) con ${array[j]} (posición $j)',
           ),
@@ -71,9 +72,9 @@ class SortingSolver {
 
         steps.add(
           SortingStep(
-            array: List.from(array),
+            array: array.snapshot,
             movingIndex: i,
-            sortedIndices: Set.from(sortedIndices),
+            sortedIndices: SortedPrefix(sortedCount),
             description:
                 'Intercambiando elementos: ${array[i]} va a posición $i',
           ),
@@ -81,22 +82,22 @@ class SortingSolver {
       }
 
       // Mark as sorted
-      sortedIndices.add(i);
+      sortedCount = i + 1;
       steps.add(
         SortingStep(
-          array: List.from(array),
-          sortedIndices: Set.from(sortedIndices),
+          array: array.snapshot,
+          sortedIndices: SortedPrefix(sortedCount),
           description: 'Posición $i está en su lugar correcto: ${array[i]}',
         ),
       );
     }
 
     // Mark last element as sorted
-    if (array.isNotEmpty) sortedIndices.add(array.length - 1);
+    if (array.isNotEmpty) sortedCount = array.length;
     steps.add(
       SortingStep(
-        array: List.from(array),
-        sortedIndices: Set.from(sortedIndices),
+        array: array.snapshot,
+        sortedIndices: SortedPrefix(sortedCount),
         description: '¡Ordenamiento completado! ${problem.order.description}.',
       ),
     );
@@ -110,17 +111,17 @@ class SortingSolver {
 
   SortingResult _solveInsertionSort(SortingProblem problem) {
     final steps = <SortingStep>[];
-    final array = List<int>.from(problem.originalArray);
-    final sortedIndices = <int>{};
+    final array = SortingArray(problem.originalArray);
+    var sortedCount = 0;
     int totalComparisons = 0;
     int totalSwaps = 0;
 
     // Mark first element as sorted
-    if (array.isNotEmpty) sortedIndices.add(0);
+    if (array.isNotEmpty) sortedCount = 1;
     steps.add(
       SortingStep(
-        array: List.from(array),
-        sortedIndices: Set.from(sortedIndices),
+        array: array.snapshot,
+        sortedIndices: SortedPrefix(sortedCount),
         description:
             'Insertion Sort · ${problem.order.description}. ${array.isEmpty ? 'No hay elementos.' : 'El primer elemento inicia la porción ordenada.'}',
       ),
@@ -131,9 +132,9 @@ class SortingSolver {
 
       steps.add(
         SortingStep(
-          array: List.from(array),
+          array: array.snapshot,
           movingIndex: i,
-          sortedIndices: Set.from(sortedIndices),
+          sortedIndices: SortedPrefix(sortedCount),
           description:
               'Tomando elemento $i: ${array[i]}. Buscando posición correcta.',
         ),
@@ -148,10 +149,10 @@ class SortingSolver {
 
         steps.add(
           SortingStep(
-            array: List.from(array),
+            array: array.snapshot,
             comparingIndex1: j,
             movingIndex: j + 1,
-            sortedIndices: Set.from(sortedIndices),
+            sortedIndices: SortedPrefix(sortedCount),
             description:
                 'Comparando ${array[j]} (posición $j) con $key. ${shouldShift ? 'Se desplaza para dejar espacio.' : 'La posición de inserción está lista.'}',
           ),
@@ -164,9 +165,9 @@ class SortingSolver {
 
         steps.add(
           SortingStep(
-            array: List.from(array),
+            array: array.snapshot,
             movingIndex: j + 1,
-            sortedIndices: Set.from(sortedIndices),
+            sortedIndices: SortedPrefix(sortedCount),
             description: 'Desplazando ${array[j]} a posición ${j + 1}',
           ),
         );
@@ -179,17 +180,17 @@ class SortingSolver {
 
       steps.add(
         SortingStep(
-          array: List.from(array),
-          sortedIndices: Set.from(sortedIndices),
+          array: array.snapshot,
+          sortedIndices: SortedPrefix(sortedCount),
           description: 'Insertando $key en posición ${j + 1}',
         ),
       );
 
-      sortedIndices.add(i);
+      sortedCount = i + 1;
       steps.add(
         SortingStep(
-          array: List.from(array),
-          sortedIndices: Set.from(sortedIndices),
+          array: array.snapshot,
+          sortedIndices: SortedPrefix(sortedCount),
           description: 'Elementos 0-$i están en orden relativo correcto.',
         ),
       );
@@ -197,8 +198,8 @@ class SortingSolver {
 
     steps.add(
       SortingStep(
-        array: List.from(array),
-        sortedIndices: Set.from(sortedIndices),
+        array: array.snapshot,
+        sortedIndices: SortedPrefix(sortedCount),
         description: '¡Ordenamiento completado! ${problem.order.description}.',
       ),
     );
@@ -211,8 +212,8 @@ class SortingSolver {
   }
 
   SortingResult _solveMergeSort(SortingProblem problem) {
-    final array = List<int>.from(problem.originalArray);
-    final buffer = List<int>.filled(array.length, 0);
+    final array = SortingArray(problem.originalArray);
+    final buffer = List<Object>.filled(array.length, 0);
     final steps = <SortingStep>[];
     var comparisons = 0;
     var writes = 0;
@@ -225,13 +226,11 @@ class SortingSolver {
     }) {
       steps.add(
         SortingStep(
-          array: List<int>.of(array),
+          array: array.snapshot,
           comparingIndex1: first,
           comparingIndex2: second,
           movingIndex: moving,
-          sortedIndices: complete
-              ? {for (var i = 0; i < array.length; i++) i}
-              : {},
+          sortedIndices: complete ? SortedPrefix(array.length) : {},
           description: description,
         ),
       );
@@ -293,7 +292,7 @@ class SortingSolver {
   }
 
   SortingResult _solveShellSort(SortingProblem problem) {
-    final array = List<int>.from(problem.originalArray);
+    final array = SortingArray(problem.originalArray);
     final steps = <SortingStep>[];
     var comparisons = 0;
     var shifts = 0;
@@ -305,12 +304,10 @@ class SortingSolver {
     }) {
       steps.add(
         SortingStep(
-          array: List<int>.of(array),
+          array: array.snapshot,
           comparingIndex1: comparing,
           movingIndex: moving,
-          sortedIndices: complete
-              ? {for (var i = 0; i < array.length; i++) i}
-              : {},
+          sortedIndices: complete ? SortedPrefix(array.length) : {},
           description: description,
         ),
       );

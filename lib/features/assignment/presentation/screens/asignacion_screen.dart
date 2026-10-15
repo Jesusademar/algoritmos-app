@@ -13,12 +13,13 @@ import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/shared/graph_editor/geometry/offset_geometry.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
+import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 import 'package:app_grafos/shared/persistence/graph_document.dart';
 import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
+import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
-import 'package:app_grafos/shared/widgets/manual_step.dart';
 import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 
 class AsignacionScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('🗑️ Lienzo y datos limpiados correctamente.'),
-        backgroundColor: const Color(0xFFEF4444),
+        backgroundColor: AppColors.errorSoft,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -92,81 +93,10 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
   }
 
   void mostrarManualAyuda() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: AppColors.surface,
-        title: const Row(
-          children: [
-            Icon(
-              Icons.help_outline_rounded,
-              color: AppColors.primary,
-              size: 24,
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Manual de Uso - Asignación',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 520,
-          height: 440,
-          child: ListView(
-            children: const [
-              ManualStep(
-                numero: '1',
-                titulo: 'Crear Nodos (Orígenes y Destinos)',
-                descripcion: 'Haz clic en cualquier espacio vacío del lienzo para crear un nuevo nodo. Escribe un nombre descriptivo (ej. A, B para orígenes o T1, T2 para destinos).',
-              ),
-              ManualStep(
-                numero: '2',
-                titulo: 'Conectar y Asignar Costos',
-                descripcion: 'Haz clic primero en un nodo origen (se resaltará) y luego haz clic en el nodo destino. Se abrirá una ventana para ingresar el costo numérico de la asignación.',
-              ),
-              ManualStep(
-                numero: '3',
-                titulo: 'Matrices Cuadradas y No Cuadradas',
-                descripcion: 'El sistema equilibra automáticamente las matrices rectangulares (más orígenes que destinos o viceversa) usando filas/columnas ficticias (dummy) con costo 0.',
-              ),
-              ManualStep(
-                numero: '4',
-                titulo: 'Mover y Editar',
-                descripcion: 'Puedes arrastrar los nodos libremente por el lienzo. Si haces clic secundario (o doble clic/pulsación larga) sobre un nodo o conexión, podrás editar sus datos o eliminarlos.',
-              ),
-              ManualStep(
-                numero: '5',
-                titulo: 'Cálculo Óptimo y Matriz',
-                descripcion: 'Abre el panel derecho con el botón "Matriz". Selecciona si deseas "Minimizar" o "Maximizar" y presiona "Calcular Asignación Óptima" para ver el resultado y la ruta resaltada.',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '¡Entendido!',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+    showAlgorithmManual(
+      context,
+      AlgorithmManual.assignment,
+      accent: AppColors.primary,
     );
   }
 
@@ -221,7 +151,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('✨ ¡Asignación cargada exitosamente al lienzo!'),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.successSoft,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -292,7 +222,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.buttonFill(AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -373,7 +303,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.buttonFill(AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -434,7 +364,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.buttonFill(AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -620,7 +550,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                   const SizedBox(width: 12),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.buttonFill(AppColors.primary),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -662,7 +592,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                       'Guardar Asignación',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.background,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
@@ -750,7 +680,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.buttonFill(AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -890,7 +820,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('⚠️ No existe una asignación completa válida.'),
-          backgroundColor: Color(0xFFEF4444),
+          backgroundColor: AppColors.errorSoft,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -900,7 +830,7 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
           content: Text(
             '✨ ¡Solución óptima calculada! Costo Total: $ultimoCostoOptimo.',
           ),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.successSoft,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -1161,7 +1091,9 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
                               children: [
                                 FilledButton.icon(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
+                                    backgroundColor: AppColors.buttonFill(
+                                      AppColors.primary,
+                                    ),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 14,
                                     ),

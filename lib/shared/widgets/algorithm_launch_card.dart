@@ -133,6 +133,7 @@ class _AlgorithmLaunchCardState extends State<AlgorithmLaunchCard> {
                 Text(
                   widget.title,
                   style: const TextStyle(
+                    color: AppColors.text,
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     height: 1.3,

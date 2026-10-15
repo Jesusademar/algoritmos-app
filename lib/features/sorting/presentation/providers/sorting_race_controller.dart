@@ -3,22 +3,24 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
+import 'package:app_grafos/features/sorting/domain/sorting_numbers.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_order.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_problem.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_result.dart';
-import 'package:app_grafos/features/sorting/domain/sorting_step.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_solver.dart';
+import 'package:app_grafos/features/sorting/domain/sorting_step.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_validator.dart';
 
 /// Compara los pasos reales de los cuatro métodos con una entrada común.
 class SortingRaceController extends ChangeNotifier {
   SortingRaceController({
-    List<int> numbers = const [72, 18, 91, 34, 9, 56, 25, 63],
+    List<Object> numbers = const [72, 18, 91, 34, 9, 56, 25, 63],
   }) {
     setNumbers(numbers);
   }
 
-  List<int> _numbers = const [];
+  List<Object> _numbers = const [];
+  late SortingScale scale;
   Map<SortingAlgorithm, SortingResult> _results = {};
   SortingOrder _order = SortingOrder.ascending;
   Timer? _timer;
@@ -26,22 +28,36 @@ class SortingRaceController extends ChangeNotifier {
   int _lastTick = 0;
   int _speed = 1;
 
-  List<int> get numbers => _numbers;
+  List<Object> get numbers => _numbers;
+  bool get hasData => _numbers.isNotEmpty;
   SortingOrder get order => _order;
   int get tick => _tick;
   int get lastTick => _lastTick;
   int get speed => _speed;
   bool get isPlaying => _timer != null;
-  bool get isComplete => _tick == _lastTick;
-  SortingResult result(SortingAlgorithm algorithm) => _results[algorithm]!;
+  bool get isComplete => hasData && _tick == _lastTick;
+  SortingResult result(SortingAlgorithm algorithm) =>
+      _results[algorithm] ??
+      const SortingResult(
+        steps: [
+          SortingStep(
+            array: [],
+            sortedIndices: {},
+            description: 'Ingresa números para comparar los métodos.',
+          ),
+        ],
+        totalComparisons: 0,
+        totalSwaps: 0,
+      );
   int stepIndex(SortingAlgorithm algorithm) =>
       _tick.clamp(0, result(algorithm).stepCount - 1);
   SortingStep step(SortingAlgorithm algorithm) =>
       result(algorithm).steps[stepIndex(algorithm)];
   bool completed(SortingAlgorithm algorithm) =>
-      stepIndex(algorithm) == result(algorithm).stepCount - 1;
-  double progress(SortingAlgorithm algorithm) =>
-      result(algorithm).stepCount <= 1
+      hasData && stepIndex(algorithm) == result(algorithm).stepCount - 1;
+  double progress(SortingAlgorithm algorithm) => !hasData
+      ? 0
+      : result(algorithm).stepCount <= 1
       ? 1
       : stepIndex(algorithm) / (result(algorithm).stepCount - 1);
   String complexity(SortingAlgorithm algorithm) =>
@@ -50,6 +66,7 @@ class SortingRaceController extends ChangeNotifier {
       ? algorithm.bestCase
       : algorithm.worstCase;
   List<SortingAlgorithm> get fewestComparisons {
+    if (!hasData) return const [];
     final minimum = _results.values
         .map((result) => result.totalComparisons)
         .reduce((a, b) => a < b ? a : b);
@@ -58,10 +75,11 @@ class SortingRaceController extends ChangeNotifier {
         .toList();
   }
 
-  void setNumbers(List<int> numbers) {
+  void setNumbers(List<Object> numbers) {
     final (valid, error) = SortingValidator.validateArray(numbers);
     if (!valid) throw FormatException(error ?? 'Números no válidos.');
     _numbers = List.unmodifiable(numbers);
+    scale = SortingScale(_numbers);
     _recalculate();
   }
 
@@ -74,6 +92,12 @@ class SortingRaceController extends ChangeNotifier {
   void _recalculate() {
     _stop();
     _tick = 0;
+    if (!hasData) {
+      _results = {};
+      _lastTick = 0;
+      notifyListeners();
+      return;
+    }
     _results = {
       for (final algorithm in SortingAlgorithm.values)
         algorithm: const SortingSolver().solve(
@@ -91,7 +115,7 @@ class SortingRaceController extends ChangeNotifier {
   }
 
   void play() {
-    if (isPlaying) return;
+    if (!hasData || isPlaying) return;
     if (isComplete) _tick = 0;
     if (_lastTick == 0) return;
     _timer = Timer.periodic(Duration(milliseconds: (110 / _speed).round()), (
@@ -118,6 +142,12 @@ class SortingRaceController extends ChangeNotifier {
   void next() => seek(_tick + 1);
   void finish() => seek(_lastTick);
   void reset() => seek(0);
+  void clear() {
+    _numbers = const [];
+    scale = SortingScale(_numbers);
+    _recalculate();
+  }
+
   void setSpeed(int value) {
     if (![1, 2, 4].contains(value)) throw ArgumentError.value(value, 'speed');
     final playing = isPlaying;

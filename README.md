@@ -9,11 +9,14 @@ desarrollado con Flutter por Jesus Canqui, Miguel Sanchez y Jenny Quispe.
 - **Asignación:** minimización y maximización, con filas o columnas ficticias
   para matrices rectangulares.
 - **Johnson / red de actividades:** tiempos tempranos y tardíos, holguras y
-  ruta crítica; validación de ciclos y conexiones.
+  ruta crítica; inicio fijo en cero y validación de ciclos y conexiones.
 - **Esquina Noroeste / transporte:** distribución de oferta y demanda,
   optimización de costos y balance automático.
 - **Ordenamiento:** Selection, Insertion, Merge y Shell; sentido ascendente o
-  descendente, reproducción por pasos y reporte Big O al finalizar.
+  descendente, reproducción por pasos y reporte Big O al finalizar. Cantidad y
+  rango aleatorio definidos por el usuario, repetición opcional y enteros de
+  precisión arbitraria, incluidos negativos y cero, sin topes fijos del módulo.
+  Limpiar vacía los datos y resultados; Reiniciar conserva la entrada original.
 - **Árboles binarios:** inserción manual o aleatoria por rango, nodos móviles,
   recorridos Pre-order, In-order y Post-order, y reconstrucción con dos recorridos.
 
@@ -23,12 +26,20 @@ reproducción, línea de tiempo y métricas al terminar. Sus turnos visuales no
 representan mediciones de velocidad real.
 
 Los módulos incluyen ayuda y archivos JSON para guardar y cargar los datos.
+Los manuales comparten una vista adaptable con instrucciones, ejemplos,
+interpretación de resultados y solución de errores. Incluyen también la carrera
+de ordenamiento y el acceso al procedimiento matemático donde está disponible.
 En Asignación y Esquina Noroeste, calcula una solución y pulsa **Ver procedimiento
 matemático** para consultar matrices, restricciones, operaciones y el costo final.
 El procedimiento registra la búsqueda de asignaciones y, en transporte, la
 distribución inicial noroeste y sus ajustes de optimización.
 La interfaz se adapta a pantallas móviles, tabletas y escritorio. El guardado
 usa descarga en navegador y selección de destino en aplicaciones nativas.
+Los documentos nuevos de ordenamiento usan la versión 2 y guardan los números
+como cadenas decimales para conservar todas sus cifras en navegador. Se siguen
+aceptando documentos de la versión 1. Las listas grandes se dibujan por demanda
+y los pasos comparten instantáneas del arreglo para reducir el uso de memoria;
+la capacidad práctica sigue dependiendo de los recursos del dispositivo.
 
 ## Organización
 

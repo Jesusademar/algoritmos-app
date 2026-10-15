@@ -4,7 +4,7 @@ import 'package:app_grafos/features/sorting/domain/sorting_order.dart';
 /// Represents the sorting problem domain model.
 /// Contains the data to be sorted and the algorithm to use.
 class SortingProblem {
-  final List<int> originalArray;
+  final List<Object> originalArray;
   final SortingAlgorithm algorithm;
   final SortingOrder order;
 
@@ -19,7 +19,7 @@ class SortingProblem {
 
   /// Creates a copy of this problem with modified fields
   SortingProblem copyWith({
-    List<int>? originalArray,
+    List<Object>? originalArray,
     SortingAlgorithm? algorithm,
     SortingOrder? order,
   }) {
