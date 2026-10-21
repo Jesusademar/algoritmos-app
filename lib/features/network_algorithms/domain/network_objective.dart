@@ -1,0 +1,1 @@
+enum NetworkObjective { minimize, maximize }

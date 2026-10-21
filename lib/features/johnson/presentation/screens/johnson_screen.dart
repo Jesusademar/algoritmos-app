@@ -1,13 +1,14 @@
 import 'dart:math';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_problem.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_rules.dart';
+import 'package:app_grafos/features/johnson/domain/activity_network_result.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_solver.dart';
 import 'package:app_grafos/features/johnson/presentation/widgets/activity_network_painter.dart';
+import 'package:app_grafos/features/johnson/presentation/widgets/activity_network_panel.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
 import 'package:app_grafos/shared/help/algorithm_manuals.dart';
@@ -16,6 +17,7 @@ import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
+import 'package:app_grafos/shared/graph_editor/widgets/graph_canvas_viewport.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 
 class JohnsonScreen extends StatefulWidget {
@@ -45,6 +47,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
   Map<String, int> tiemposTempranos = {};
   Map<String, int> tiemposTardios = {};
   Map<String, int> holguras = {};
+  Map<String, int> holgurasAristas = {};
   Set<String> aristasCriticas = {};
   int proyectoDuracionTotal = 0;
 
@@ -104,6 +107,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
       tiemposTempranos.clear();
       tiemposTardios.clear();
       holguras.clear();
+      holgurasAristas.clear();
       aristasCriticas.clear();
       nodoOrigenParaConexion = null;
       nodoDragging = null;
@@ -119,6 +123,27 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+
+  void _invalidarResultado() {
+    tiemposTempranos.clear();
+    tiemposTardios.clear();
+    holguras.clear();
+    holgurasAristas.clear();
+    aristasCriticas.clear();
+    proyectoDuracionTotal = 0;
+    mostrarProceso = false;
+  }
+
+  void _actualizarRed(VoidCallback change) {
+    final recalcular = mostrarProceso;
+    setState(() {
+      change();
+      _invalidarResultado();
+    });
+    if (recalcular && nodos.isNotEmpty) {
+      calcularRedActividades(notificar: false);
+    }
   }
 
   void mostrarManualAyuda() {
@@ -176,6 +201,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         tiemposTempranos.clear();
         tiemposTardios.clear();
         holguras.clear();
+        holgurasAristas.clear();
         aristasCriticas.clear();
         proyectoDuracionTotal = 0;
         mostrarProceso = false;
@@ -291,7 +317,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
             ),
             onPressed: () {
               if (nombreController.text.isNotEmpty) {
-                setState(() {
+                _actualizarRed(() {
                   final nuevoId = 'n${DateTime.now().millisecondsSinceEpoch}';
                   nodos.add(
                     Nodo(
@@ -364,7 +390,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              setState(() {
+              _actualizarRed(() {
                 conexiones.removeWhere(
                   (c) => c.nodoA == nodo.id || c.nodoB == nodo.id,
                 );
@@ -406,7 +432,7 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
               ),
             ),
             onPressed: () {
-              setState(() {
+              _actualizarRed(() {
                 nodo.nombre = nombreController.text;
               });
               Navigator.pop(context);
@@ -452,208 +478,85 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
   void crearConexion(Nodo origen, Nodo destino) {
     if (!_conexionPermitida(origen, destino)) return;
     pesoAristaController.clear();
+    final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF121214),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 40,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
+      builder: (context) => AlertDialog(
+        title: const Text('Duración de Actividad'),
+        scrollable: true,
+        content: Form(
+          key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.johnson.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.johnson.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Text(
-                      origen.nombre,
-                      style: const TextStyle(
-                        color: Color(0xFF818CF8),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.grey,
-                      size: 18,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.success.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    child: Text(
-                      destino.nombre,
-                      style: const TextStyle(
-                        color: Color(0xFF34D399),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Duración de Actividad',
-                style: TextStyle(
-                  color: AppColors.text,
-                  fontSize: 18,
+              Text(
+                '${origen.nombre} → ${destino.nombre}',
+                style: const TextStyle(
+                  color: AppColors.johnson,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 14),
-              TextField(
+              const SizedBox(height: 20),
+              TextFormField(
                 controller: pesoAristaController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: true,
+                ),
                 autofocus: true,
-                style: const TextStyle(
-                  color: AppColors.text,
-                  fontWeight: FontWeight.w600,
+                validator: (text) => int.tryParse(text?.trim() ?? '') == null
+                    ? 'Ingresa un peso entero válido.'
+                    : null,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                decoration: const InputDecoration(
+                  labelText: 'Valor / Peso de la línea',
+                  prefixIcon: Icon(Icons.line_weight_rounded),
                 ),
-                decoration: InputDecoration(
-                  labelText: 'Valor / Peso de la línea (Obligatorio)',
-                  labelStyle: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.line_weight_rounded,
-                    color: Color(0xFF818CF8),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF1E1E24),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: AppColors.johnson,
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.buttonFill(AppColors.johnson),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 4,
-                      shadowColor: AppColors.johnson.withValues(alpha: 0.5),
-                    ),
-                    onPressed: () {
-                      final peso = int.tryParse(pesoAristaController.text);
-                      if (peso != null) {
-                        if (!_conexionPermitida(origen, destino)) return;
-                        final colorAleatorio =
-                            paletaColores[Random().nextInt(
-                              paletaColores.length,
-                            )];
-                        setState(() {
-                          conexiones.removeWhere(
-                            (c) =>
-                                c.nodoA == origen.id && c.nodoB == destino.id,
-                          );
-                          conexiones.add(
-                            Conexion(
-                              nodoA: origen.id,
-                              nodoB: destino.id,
-                              peso: peso,
-                              tipo: 'normal',
-                              color: colorAleatorio,
-                            ),
-                          );
-                        });
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text(
-                      'Conectar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.buttonFill(AppColors.johnson),
+            ),
+            onPressed: () {
+              if (!formKey.currentState!.validate()) return;
+              if (!_conexionPermitida(origen, destino)) return;
+              final peso = int.parse(pesoAristaController.text.trim());
+              final color =
+                  paletaColores[Random().nextInt(paletaColores.length)];
+              _actualizarRed(() {
+                conexiones.removeWhere(
+                  (c) => c.nodoA == origen.id && c.nodoB == destino.id,
+                );
+                conexiones.add(
+                  Conexion(
+                    nodoA: origen.id,
+                    nodoB: destino.id,
+                    peso: peso,
+                    tipo: 'normal',
+                    color: color,
+                  ),
+                );
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Conectar'),
+          ),
+        ],
       ),
     );
   }
 
   void editarConexion(Conexion conexion) {
     pesoAristaController.text = conexion.peso.toString();
+    final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -663,37 +566,44 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           'Editar Duración de Línea',
           style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.text),
         ),
-        content: TextField(
-          controller: pesoAristaController,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          style: const TextStyle(
-            color: AppColors.text,
-            fontWeight: FontWeight.w600,
-          ),
-          decoration: InputDecoration(
-            labelText: 'Nuevo Peso',
-            labelStyle: const TextStyle(color: AppColors.textMuted),
-            prefixIcon: const Icon(
-              Icons.line_weight_rounded,
-              color: AppColors.johnson,
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            validator: (text) => int.tryParse(text?.trim() ?? '') == null
+                ? 'Ingresa un peso entero válido.'
+                : null,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            controller: pesoAristaController,
+            keyboardType: const TextInputType.numberWithOptions(signed: true),
+            autofocus: true,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontWeight: FontWeight.w600,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
+            decoration: InputDecoration(
+              labelText: 'Nuevo Peso',
+              labelStyle: const TextStyle(color: AppColors.textMuted),
+              prefixIcon: const Icon(
+                Icons.line_weight_rounded,
+                color: AppColors.johnson,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              filled: true,
+              fillColor: AppColors.background,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            filled: true,
-            fillColor: AppColors.background,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              setState(() => conexiones.remove(conexion));
+              _actualizarRed(() => conexiones.remove(conexion));
               Navigator.pop(context);
             },
             child: const Text(
@@ -722,9 +632,9 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
               ),
             ),
             onPressed: () {
-              final nuevoPeso =
-                  int.tryParse(pesoAristaController.text) ?? conexion.peso;
-              setState(() {
+              if (!formKey.currentState!.validate()) return;
+              final nuevoPeso = int.parse(pesoAristaController.text.trim());
+              _actualizarRed(() {
                 final index = conexiones.indexOf(conexion);
                 if (index != -1) {
                   conexiones[index] = Conexion(
@@ -748,10 +658,11 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
     );
   }
 
-  void calcularRedActividades() {
+  void calcularRedActividades({bool notificar = true}) {
     if (nodos.isEmpty) return;
     final error = _networkRules.networkError(_aristasDe(conexiones));
     if (error != null) {
+      setState(_invalidarResultado);
       _mostrarErrorConexion(error);
       return;
     }
@@ -776,17 +687,29 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
           ? NetworkOptimizationMode.maximize
           : NetworkOptimizationMode.minimize,
     );
-    final resultado = _solver.solve(problema);
+    final ActivityNetworkResult resultado;
+    try {
+      resultado = _solver.solve(problema);
+    } on ArgumentError catch (error) {
+      setState(_invalidarResultado);
+      _mostrarErrorConexion(error.message.toString());
+      return;
+    }
 
     setState(() {
       tiemposTempranos = Map.of(resultado.earlyTimes);
       tiemposTardios = Map.of(resultado.lateTimes);
       holguras = Map.of(resultado.slacks);
+      holgurasAristas = Map.of(resultado.edgeSlacks);
       aristasCriticas = Set.of(resultado.criticalEdgeIds);
       proyectoDuracionTotal = resultado.totalDuration;
       mostrarProceso = true;
     });
 
+    if (!notificar) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -798,6 +721,13 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
     );
   }
 
+  void _seleccionarModo(NetworkOptimizationMode mode) {
+    setState(() => esMaximizar = mode == NetworkOptimizationMode.maximize);
+    if (mostrarProceso) {
+      calcularRedActividades(notificar: false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlgorithmScaffold(
@@ -806,84 +736,28 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
       icon: Icons.account_tree_rounded,
       actions: [
         IconButton(
-          onPressed: () {
-            if (mostrarProceso) {
-              setState(() {
-                mostrarProceso = false;
-              });
-            } else {
-              calcularRedActividades();
-            }
-          },
-          icon: Icon(
-            mostrarProceso ? Icons.close_rounded : Icons.bolt_rounded,
-            color: AppColors.johnson,
-          ),
-          tooltip: mostrarProceso ? 'Ocultar resultado' : 'Calcular',
+          tooltip: 'Calcular',
+          onPressed: calcularRedActividades,
+          icon: const Icon(Icons.play_arrow_rounded),
         ),
         PopupMenuButton<String>(
           tooltip: 'Más opciones',
-          icon: Icon(
-            esMaximizar
-                ? Icons.trending_up_rounded
-                : Icons.trending_down_rounded,
-            color: AppColors.johnson,
-          ),
           onSelected: (value) {
             switch (value) {
-              case 'modo':
-                setState(() {
-                  esMaximizar = !esMaximizar;
-                });
-                if (mostrarProceso) {
-                  calcularRedActividades();
-                }
-              case 'ayuda':
-                mostrarManualAyuda();
               case 'guardar':
                 mostrarGuardarJson();
               case 'cargar':
                 cargarArchivoJson();
+              case 'ayuda':
+                mostrarManualAyuda();
             }
           },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'modo',
-              child: ListTile(
-                leading: Icon(
-                  esMaximizar
-                      ? Icons.trending_down_rounded
-                      : Icons.trending_up_rounded,
-                ),
-                title: Text(
-                  esMaximizar ? 'Cambiar a Minimizar' : 'Cambiar a Maximizar',
-                ),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'guardar',
-              child: ListTile(
-                leading: Icon(Icons.save_alt_rounded),
-                title: Text('Guardar'),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'cargar',
-              child: ListTile(
-                leading: Icon(Icons.folder_open_rounded),
-                title: Text('Cargar'),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'ayuda',
-              child: ListTile(
-                leading: Icon(Icons.help_outline_rounded),
-                title: Text('Manual de uso'),
-              ),
-            ),
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'guardar', child: Text('Guardar')),
+            PopupMenuItem(value: 'cargar', child: Text('Cargar')),
+            PopupMenuItem(value: 'ayuda', child: Text('Manual de uso')),
           ],
         ),
-        const SizedBox(width: 4),
       ],
       body: AlgorithmWorkspace(
         isEmpty: nodos.isEmpty,
@@ -892,123 +766,84 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
         emptyTitle: 'Dibuja tus actividades',
         canvas: Stack(
           children: [
-            Listener(
-              onPointerDown: (event) {
-                if (event.buttons == kSecondaryButton) {
-                  final nodoTocado = nodos.firstWhere(
-                    (n) => (n.posicion - event.localPosition).distance < 30,
-                    orElse: () =>
-                        Nodo(id: '', nombre: '', posicion: Offset.infinite),
-                  );
-                  if (nodoTocado.id.isNotEmpty) {
-                    mostrarOpcionesNodo(nodoTocado);
+            GraphCanvasViewport(
+              nodes: nodos,
+              painter: RedActividadesPainter(
+                nodos,
+                conexiones,
+                nodoOrigenParaConexion,
+                tiemposTempranos,
+                tiemposTardios,
+                holguras,
+                aristasCriticas,
+                mostrarProceso,
+                edgeSlacks: holgurasAristas,
+              ),
+              onTap: (position) {
+                final nodoTocado = nodos.firstWhere(
+                  (n) => (n.posicion - position).distance < 30,
+                  orElse: () =>
+                      Nodo(id: '', nombre: '', posicion: Offset.infinite),
+                );
+
+                if (nodoTocado.id.isNotEmpty) {
+                  if (nodoOrigenParaConexion == null) {
+                    setState(() => nodoOrigenParaConexion = nodoTocado);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Nodo "${nodoTocado.nombre}" seleccionado como origen. Haz clic en otro destino.',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } else {
+                    if (nodoOrigenParaConexion!.id == nodoTocado.id) {
+                      _mostrarErrorConexion(
+                        'No se permiten bucles en un mismo nodo.',
+                      );
+                      setState(() => nodoOrigenParaConexion = null);
+                    } else {
+                      crearConexion(nodoOrigenParaConexion!, nodoTocado);
+                      setState(() => nodoOrigenParaConexion = null);
+                    }
                   }
+                } else {
+                  Conexion? conexionToca;
+                  for (var c in conexiones) {
+                    final nA = nodos.firstWhere((n) => n.id == c.nodoA);
+                    final nB = nodos.firstWhere((n) => n.id == c.nodoB);
+                    final mid = Offset(
+                      (nA.posicion.dx + nB.posicion.dx) / 2,
+                      (nA.posicion.dy + nB.posicion.dy) / 2,
+                    );
+                    if ((mid - position).distance < 25) {
+                      conexionToca = c;
+                      break;
+                    }
+                  }
+
+                  if (conexionToca != null) {
+                    editarConexion(conexionToca);
+                  } else {
+                    agregarNodo(position);
+                  }
+                  setState(() => nodoOrigenParaConexion = null);
                 }
               },
-              child: GestureDetector(
-                onTapDown: (details) {
-                  final nodoTocado = nodos.firstWhere(
-                    (n) => (n.posicion - details.localPosition).distance < 30,
-                    orElse: () =>
-                        Nodo(id: '', nombre: '', posicion: Offset.infinite),
-                  );
-
-                  if (nodoTocado.id.isNotEmpty) {
-                    if (nodoOrigenParaConexion == null) {
-                      setState(() => nodoOrigenParaConexion = nodoTocado);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Nodo "${nodoTocado.nombre}" seleccionado como origen. Haz clic en otro destino.',
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    } else {
-                      if (nodoOrigenParaConexion!.id == nodoTocado.id) {
-                        _mostrarErrorConexion(
-                          'No se permiten bucles en un mismo nodo.',
-                        );
-                        setState(() => nodoOrigenParaConexion = null);
-                      } else {
-                        crearConexion(nodoOrigenParaConexion!, nodoTocado);
-                        setState(() => nodoOrigenParaConexion = null);
-                      }
-                    }
-                  } else {
-                    Conexion? conexionToca;
-                    for (var c in conexiones) {
-                      final nA = nodos.firstWhere((n) => n.id == c.nodoA);
-                      final nB = nodos.firstWhere((n) => n.id == c.nodoB);
-                      final mid = Offset(
-                        (nA.posicion.dx + nB.posicion.dx) / 2,
-                        (nA.posicion.dy + nB.posicion.dy) / 2,
-                      );
-                      if ((mid - details.localPosition).distance < 25) {
-                        conexionToca = c;
-                        break;
-                      }
-                    }
-
-                    if (conexionToca != null) {
-                      editarConexion(conexionToca);
-                    } else {
-                      agregarNodo(details.localPosition);
-                    }
-                    setState(() => nodoOrigenParaConexion = null);
-                  }
-                },
-                onDoubleTapDown: (details) {
-                  final nodoTocado = nodos.firstWhere(
-                    (n) => (n.posicion - details.localPosition).distance < 30,
-                    orElse: () =>
-                        Nodo(id: '', nombre: '', posicion: Offset.infinite),
-                  );
-                  if (nodoTocado.id.isNotEmpty) {
-                    mostrarOpcionesNodo(nodoTocado);
-                  }
-                },
-                onLongPressStart: (details) {
-                  final nodoTocado = nodos.firstWhere(
-                    (n) => (n.posicion - details.localPosition).distance < 30,
-                    orElse: () =>
-                        Nodo(id: '', nombre: '', posicion: Offset.infinite),
-                  );
-                  if (nodoTocado.id.isNotEmpty) {
-                    mostrarOpcionesNodo(nodoTocado);
-                  }
-                },
-                onPanStart: (details) {
-                  nodoDragging = nodos.firstWhere(
-                    (n) => (n.posicion - details.localPosition).distance < 30,
-                    orElse: () =>
-                        Nodo(id: '', nombre: '', posicion: Offset.infinite),
-                  );
-                  if (nodoDragging!.id.isEmpty) nodoDragging = null;
-                },
-                onPanUpdate: (details) {
-                  if (nodoDragging != null) {
-                    setState(() => nodoDragging!.posicion += details.delta);
-                  }
-                },
-                onPanEnd: (_) => nodoDragging = null,
-                child: Container(
-                  color: Colors.transparent,
-                  child: CustomPaint(
-                    painter: RedActividadesPainter(
-                      nodos,
-                      conexiones,
-                      nodoOrigenParaConexion,
-                      tiemposTempranos,
-                      tiemposTardios,
-                      holguras,
-                      aristasCriticas,
-                      mostrarProceso,
-                    ),
-                    size: Size.infinite,
-                  ),
-                ),
-              ),
+              onEdit: (position) {
+                final nodoTocado = nodos.firstWhere(
+                  (n) => (n.posicion - position).distance < 30,
+                  orElse: () =>
+                      Nodo(id: '', nombre: '', posicion: Offset.infinite),
+                );
+                if (nodoTocado.id.isNotEmpty) {
+                  mostrarOpcionesNodo(nodoTocado);
+                }
+              },
+              onNodeMoved: (node, position) => setState(() {
+                node.posicion = position;
+              }),
             ),
             Positioned(
               bottom: 16,
@@ -1022,159 +857,20 @@ class _JohnsonScreenState extends State<JohnsonScreen> {
             ),
           ],
         ),
-        panel: mostrarProceso
-            ? Container(
-                color: AppColors.surface,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: AppColors.border),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.bar_chart_rounded,
-                            color: AppColors.johnson,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Resultados:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: AppColors.text,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: esMaximizar
-                                          ? AppColors.warningSoft
-                                          : AppColors.warningSoft,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      esMaximizar ? 'MAXIMIZAR' : 'MINIMIZAR',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: esMaximizar
-                                            ? AppColors.johnson
-                                            : AppColors.warningText,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Tiempo inicial: 0',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successSoft,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.success),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.verified_rounded,
-                                      color: AppColors.success,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      'Valor Total: $proyectoDuracionTotal',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.successText,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const Divider(height: 24),
-                              const Text(
-                                'Detalle por Nodo (Temprano / Tardío / Holgura):',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              ListView(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: nodos.map((n) {
-                                  int tTemp = tiemposTempranos[n.id] ?? 0;
-                                  int tTard = tiemposTardios[n.id] ?? 0;
-                                  int holg = holguras[n.id] ?? 0;
-                                  bool esRaiz =
-                                      n.id == nodoInicialSeleccionadoId;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8.0),
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.background,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: AppColors.border,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Nodo [${n.nombre}]${esRaiz ? " (Raíz)" : ""} | ES/EF: $tTemp | LS/LF: $tTard | H = $holg',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textSecondary,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            : null,
+        panel: ActivityNetworkPanel(
+          nodes: nodos,
+          startId: nodoInicialSeleccionadoId,
+          selectedNode: nodoOrigenParaConexion,
+          maximizing: esMaximizar,
+          hasResult: mostrarProceso,
+          total: proyectoDuracionTotal,
+          forward: tiemposTempranos,
+          backward: tiemposTardios,
+          slacks: holguras,
+          highlightedEdges: aristasCriticas.length,
+          onModeChanged: _seleccionarModo,
+          onCalculate: calcularRedActividades,
+        ),
       ),
     );
   }

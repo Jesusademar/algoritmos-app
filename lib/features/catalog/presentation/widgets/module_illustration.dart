@@ -122,7 +122,7 @@ class _ModulePainter extends CustomPainter {
       for (final pair in [(0, 1), (0, 2), (1, 3), (2, 3), (3, 4), (2, 4)]) {
         canvas.drawLine(points[pair.$1], points[pair.$2], line);
       }
-      if (id == 'johnson') {
+      if (id == 'johnson' || id == 'dijkstra' || id == 'kruskal') {
         canvas.drawLine(points[0], points[1], fill..strokeWidth = 2.5);
         canvas.drawLine(points[1], points[3], fill);
         canvas.drawLine(points[3], points[4], fill);

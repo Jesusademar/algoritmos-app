@@ -110,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         children: [
                           Metric(
                             icon: Icons.apps_rounded,
-                            title: '6 módulos',
+                            title: '8 módulos',
                             subtitle: 'Grafos, optimización y ordenamiento',
                           ),
                           Metric(

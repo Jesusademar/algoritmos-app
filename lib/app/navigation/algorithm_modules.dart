@@ -7,6 +7,8 @@ import 'package:app_grafos/features/binary_tree/presentation/screens/binary_tree
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
 import 'package:app_grafos/features/graph/presentation/screens/grafo_screen.dart';
 import 'package:app_grafos/features/johnson/presentation/screens/johnson_screen.dart';
+import 'package:app_grafos/features/network_algorithms/domain/network_algorithm.dart';
+import 'package:app_grafos/features/network_algorithms/presentation/screens/network_algorithm_screen.dart';
 import 'package:app_grafos/features/sorting/domain/sorting_algorithm.dart';
 import 'package:app_grafos/features/sorting/presentation/screens/sorting_methods_screen.dart';
 import 'package:app_grafos/features/sorting/presentation/screens/sorting_visualization_screen.dart';
@@ -87,7 +89,7 @@ const algorithmModules = [
     description: 'Este módulo representa actividades y sus dependencias. Calcula tiempos tempranos, tiempos tardíos y holguras para interpretar la duración de una red de actividades.',
     input: 'Eventos, conexiones con duración y un nodo de inicio.',
     output: 'Tiempos, holguras y actividades de la ruta crítica.',
-    tip: 'Prueba: cambia la duración de una actividad y vuelve a calcular la red.',
+    tip: 'Prueba: compara rutas mínimas y máximas. Al editar un peso, el resultado abierto se actualiza.',
     screen: JohnsonScreen(),
   ),
   AlgorithmModule(
@@ -105,6 +107,36 @@ const algorithmModules = [
     output: 'Las cantidades asignadas y el costo de la distribución.',
     tip: 'Prueba: modifica una oferta o una demanda y compara la nueva distribución.',
     screen: EsquinaNorOesteScreen(),
+  ),
+  AlgorithmModule(
+    id: 'kruskal',
+    category: 'Optimización',
+    menuTitle: 'Algoritmo de Kruskal',
+    summary: 'Conecta todos los nodos con costo mínimo o máximo y sin ciclos.',
+    label: 'Kruskal',
+    title: 'Árboles de expansión mínima y máxima',
+    icon: Icons.device_hub_rounded,
+    color: AppColors.sorting,
+    description: 'Kruskal ordena las conexiones por peso y une componentes diferentes. Obtiene un árbol de expansión mínima o máxima, o un bosque cuando la red está desconectada.',
+    input: 'Nodos y conexiones sin dirección con pesos enteros.',
+    output: 'Las conexiones elegidas, el costo total y cada decisión del algoritmo.',
+    tip: 'Prueba: añade una conexión barata y observa cómo cambia el árbol mínimo.',
+    screen: NetworkAlgorithmScreen(algorithm: NetworkAlgorithm.kruskal),
+  ),
+  AlgorithmModule(
+    id: 'dijkstra',
+    category: 'Rutas',
+    menuTitle: 'Algoritmo de Dijkstra',
+    summary: 'Encuentra las rutas más cortas desde un nodo de inicio.',
+    label: 'Dijkstra',
+    title: 'Caminos mínimos en una red',
+    icon: Icons.route_rounded,
+    color: AppColors.graph,
+    description: 'Minimizar utiliza Dijkstra con pesos no negativos. Maximizar obtiene rutas más largas mediante orden topológico en una red dirigida sin ciclos.',
+    input: 'Nodos, conexiones dirigidas, pesos no negativos, inicio y destino.',
+    output: 'Ruta resaltada, distancia mínima y distancias a todos los nodos.',
+    tip: 'Prueba: cambia el destino para comparar rutas sin recalcular las distancias.',
+    screen: NetworkAlgorithmScreen(algorithm: NetworkAlgorithm.dijkstra),
   ),
   AlgorithmModule(
     id: 'sorting',
@@ -152,6 +184,14 @@ void openAlgorithmExample(BuildContext context, AlgorithmModule module) {
     'johnson' => JohnsonScreen(initialDocument: graphExample('johnson')),
     'transport' => EsquinaNorOesteScreen(
       initialDocument: graphExample('transport'),
+    ),
+    'kruskal' => NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.kruskal,
+      initialDocument: graphExample('kruskal'),
+    ),
+    'dijkstra' => NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.dijkstra,
+      initialDocument: graphExample('dijkstra'),
     ),
     'sorting' => const SortingVisualizationScreen(
       algorithm: SortingAlgorithm.mergeSort,

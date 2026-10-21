@@ -15,6 +15,7 @@ class RedActividadesPainter extends CustomPainter {
   final Map<String, int> holguras;
   final Set<String> aristasCriticas;
   final bool mostrarProceso;
+  final Map<String, int> edgeSlacks;
 
   RedActividadesPainter(
     this.nodos,
@@ -24,8 +25,9 @@ class RedActividadesPainter extends CustomPainter {
     this.tiemposTardios,
     this.holguras,
     this.aristasCriticas,
-    this.mostrarProceso,
-  );
+    this.mostrarProceso, {
+    this.edgeSlacks = const {},
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -97,9 +99,9 @@ class RedActividadesPainter extends CustomPainter {
         tp.paint(canvas, mid - Offset(tp.width / 2, tp.height / 2));
 
         if (mostrarProceso) {
-          int hA = holguras[c.nodoA] ?? 0;
+          final slack = edgeSlacks['${c.nodoA}-${c.nodoB}'];
           final textHolgura = TextSpan(
-            text: ' H=$hA ',
+            text: ' H=${slack ?? '—'} ',
             style: const TextStyle(
               fontFamily: 'Roboto',
               color: AppColors.textMuted,
@@ -169,11 +171,11 @@ class RedActividadesPainter extends CustomPainter {
       );
 
       if (mostrarProceso) {
-        int tTemp = tiemposTempranos[nodo.id] ?? 0;
-        int tTard = tiemposTardios[nodo.id] ?? 0;
+        final tTemp = tiemposTempranos[nodo.id]?.toString() ?? '—';
+        final tTard = tiemposTardios[nodo.id]?.toString() ?? '—';
 
         final leftSpan = TextSpan(
-          text: '$tTemp',
+          text: tTemp,
           style: const TextStyle(
             fontFamily: 'Roboto',
             color: AppColors.text,
@@ -189,7 +191,7 @@ class RedActividadesPainter extends CustomPainter {
         leftTP.paint(canvas, nodo.posicion + const Offset(-40, -6));
 
         final rightSpan = TextSpan(
-          text: '$tTard',
+          text: tTard,
           style: const TextStyle(
             fontFamily: 'Roboto',
             color: AppColors.text,

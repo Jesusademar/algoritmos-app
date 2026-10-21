@@ -7,6 +7,7 @@ import 'package:app_grafos/app/app_theme.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_problem.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/esquina_nor_oeste_solver.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/domain/optimization_mode.dart';
+import 'package:app_grafos/features/esquina_nor_oeste/presentation/widgets/transport_matrix.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/widgets/transport_painter.dart';
 import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
@@ -17,6 +18,7 @@ import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
+import 'package:app_grafos/shared/graph_editor/widgets/graph_canvas_viewport.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 
@@ -33,6 +35,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
 
   List<Nodo> nodos = [];
   List<Conexion> conexiones = [];
+  final _matrixFormKey = GlobalKey<FormState>();
   Map<String, int> ofertas = {};
   Map<String, int> demandas = {};
 
@@ -46,6 +49,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
   num ofertaSinUtilizar = 0;
   num demandaPendiente = 0;
   List<String> detalleAsignaciones = [];
+  Map<(String, String), num> cantidadesOptimas = {};
   String? errorCalculo;
   static const _solver = EsquinaNorOesteSolver();
 
@@ -69,6 +73,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
     ofertaSinUtilizar = 0;
     demandaPendiente = 0;
     detalleAsignaciones = [];
+    cantidadesOptimas = {};
     errorCalculo = null;
   }
 
@@ -98,10 +103,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       demandas.clear();
       nodoOrigen = null;
       nodoDragging = null;
-      ultimoCostoTotal = null;
-      _procedure = null;
-      detalleAsignaciones.clear();
-      errorCalculo = null;
+      _invalidarResultado();
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -158,10 +160,7 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
           demandas = Map<String, int>.from(document.metadata['demandas']);
         }
         nodoOrigen = null;
-        ultimoCostoTotal = null;
-        _procedure = null;
-        detalleAsignaciones.clear();
-        errorCalculo = null;
+        _invalidarResultado();
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -505,22 +504,16 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
 
   void _mostrarErrorCalculo(String mensaje) {
     setState(() {
+      _invalidarResultado();
       errorCalculo = mensaje;
-      ultimoCostoTotal = null;
-      _procedure = null;
-      detalleAsignaciones = [];
       mostrarProceso = true;
     });
   }
 
-  void calcularSolucionOptimizada() {
+  EsquinaNorOesteProblem _crearProblemaTransporte() {
     final origenes = obtenerOrigenes();
     final destinos = obtenerDestinos();
-    if (origenes.isEmpty || destinos.isEmpty) {
-      _mostrarErrorCalculo('Agrega al menos un origen y un destino.');
-      return;
-    }
-    final problem = EsquinaNorOesteProblem(
+    return EsquinaNorOesteProblem(
       origins: [
         for (final nodo in origenes)
           EsquinaNorOesteItem(
@@ -550,6 +543,22 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       ],
       mode: modoActual,
     );
+  }
+
+  void calcularSolucionOptimizada() {
+    final origenes = obtenerOrigenes();
+    final destinos = obtenerDestinos();
+    if (origenes.isEmpty || destinos.isEmpty) {
+      _mostrarErrorCalculo('Agrega al menos un origen y un destino.');
+      return;
+    }
+    if (_matrixFormKey.currentState?.validate() == false) {
+      _mostrarErrorCalculo(
+        'Corrige las ofertas y demandas: deben ser enteros no negativos.',
+      );
+      return;
+    }
+    final problem = _crearProblemaTransporte();
     if (problem.origins.any((o) => o.supply < 0) ||
         problem.destinations.any((d) => d.demand < 0)) {
       _mostrarErrorCalculo(
@@ -571,6 +580,14 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       _procedure = resultado.procedure;
       ofertaSinUtilizar = resultado.unshippedSupply;
       demandaPendiente = resultado.unmetDemand;
+      cantidadesOptimas = {
+        for (final asignacion in resultado.assignments)
+          if (asignacion.quantity > 0 &&
+              !asignacion.origin.isDummy &&
+              !asignacion.destination.isDummy)
+            (asignacion.origin.id, asignacion.destination.id):
+                asignacion.quantity,
+      };
       detalleAsignaciones = [
         for (final asignacion in resultado.assignments)
           '${asignacion.origin.label} ➔ ${asignacion.destination.label} '
@@ -656,9 +673,18 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
         emptyTitle: 'Define orígenes y destinos',
         canvas: Stack(
           children: [
-            GestureDetector(
-              onTapDown: (details) {
-                final nodo = obtenerNodoEnPosicion(details.localPosition);
+            GraphCanvasViewport(
+              nodes: nodos,
+              painter: NorOestePainter(
+                nodos,
+                conexiones,
+                nodoOrigen,
+                ofertas,
+                demandas,
+                optimalRoutes: cantidadesOptimas,
+              ),
+              onTap: (position) {
+                final nodo = obtenerNodoEnPosicion(position);
                 if (nodo != null) {
                   if (nodoOrigen == null) {
                     setState(() => nodoOrigen = nodo);
@@ -666,43 +692,22 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
                     conectarNodos(nodo);
                   }
                 } else {
-                  agregarNodo(details.localPosition);
+                  agregarNodo(position);
                 }
               },
-              onSecondaryTapDown: (details) {
-                final conexionTocada = obtenerConexionEnPosicion(
-                  details.localPosition,
-                );
+              onEdit: (position) {
+                final conexionTocada = obtenerConexionEnPosicion(position);
                 if (conexionTocada != null) {
                   gestionarConexion(conexionTocada);
                   return;
                 }
-                final nodoTocado = obtenerNodoEnPosicion(details.localPosition);
+                final nodoTocado = obtenerNodoEnPosicion(position);
                 if (nodoTocado != null) gestionarNodo(nodoTocado);
               },
-              onPanStart: (details) {
-                final nodo = obtenerNodoEnPosicion(details.localPosition);
-                if (nodo != null) nodoDragging = nodo;
-              },
-              onPanUpdate: (details) {
-                if (nodoDragging != null) {
-                  setState(() {
-                    nodoDragging!.posicion += details.delta;
-                    _invalidarResultado();
-                  });
-                }
-              },
-              onPanEnd: (_) => nodoDragging = null,
-              child: CustomPaint(
-                painter: NorOestePainter(
-                  nodos,
-                  conexiones,
-                  nodoOrigen,
-                  ofertas,
-                  demandas,
-                ),
-                size: Size.infinite,
-              ),
+              onNodeMoved: (node, position) => setState(() {
+                node.posicion = position;
+                _invalidarResultado();
+              }),
             ),
             Positioned(
               bottom: 16,
@@ -719,174 +724,180 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
         panel: mostrarProceso
             ? Container(
                 color: AppColors.surface,
-                child: ListView(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
-                  children: [
-                    const Text(
-                      'Matriz de Transporte y Ofertas',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    buildMatrizTransporteWidget(),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Modo de Optimización',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: SegmentedButton<OptimizationMode>(
-                        segments: const [
-                          ButtonSegment(
-                            value: OptimizationMode.minimize,
-                            label: Text('Minimizar'),
-                            icon: Icon(Icons.arrow_downward_rounded, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: OptimizationMode.maximize,
-                            label: Text('Maximizar'),
-                            icon: Icon(Icons.arrow_upward_rounded, size: 16),
-                          ),
-                        ],
-                        selected: {modoActual},
-                        onSelectionChanged:
-                            (Set<OptimizationMode> newSelection) {
-                              setState(() {
-                                modoActual = newSelection.first;
-                                _invalidarResultado();
-                              });
-                            },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.buttonFill(
-                          AppColors.success,
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Modo de Optimización',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppColors.text,
                         ),
                       ),
-                      onPressed: calcularSolucionOptimizada,
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(
-                        modoActual == OptimizationMode.minimize
-                            ? 'Calcular mínimo'
-                            : 'Calcular máximo',
-                        style: const TextStyle(
+                      const SizedBox(height: 8),
+                      Center(
+                        child: SegmentedButton<OptimizationMode>(
+                          segments: const [
+                            ButtonSegment(
+                              value: OptimizationMode.minimize,
+                              label: Text('Minimizar'),
+                              icon: Icon(
+                                Icons.arrow_downward_rounded,
+                                size: 16,
+                              ),
+                            ),
+                            ButtonSegment(
+                              value: OptimizationMode.maximize,
+                              label: Text('Maximizar'),
+                              icon: Icon(Icons.arrow_upward_rounded, size: 16),
+                            ),
+                          ],
+                          selected: {modoActual},
+                          onSelectionChanged:
+                              (Set<OptimizationMode> newSelection) {
+                                setState(() {
+                                  modoActual = newSelection.first;
+                                  _invalidarResultado();
+                                });
+                              },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.buttonFill(
+                            AppColors.success,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: calcularSolucionOptimizada,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: Text(
+                          modoActual == OptimizationMode.minimize
+                              ? 'Calcular mínimo'
+                              : 'Calcular máximo',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _procedure == null
+                            ? null
+                            : () => showMathematicalProcedure(
+                                context,
+                                _procedure!,
+                                accent: AppColors.success,
+                              ),
+                        icon: const Icon(Icons.functions_rounded, size: 18),
+                        label: const Text('Ver procedimiento matemático'),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Matriz de Transporte y Ofertas',
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          color: AppColors.text,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _procedure == null
-                          ? null
-                          : () => showMathematicalProcedure(
-                              context,
-                              _procedure!,
-                              accent: AppColors.success,
-                            ),
-                      icon: const Icon(Icons.functions_rounded, size: 18),
-                      label: const Text('Ver procedimiento matemático'),
-                    ),
-                    const SizedBox(height: 20),
-                    if (errorCalculo != null) ...[
-                      Text(
-                        errorCalculo!,
-                        style: const TextStyle(
-                          color: AppColors.warningText,
-                          height: 1.5,
-                        ),
-                      ),
+                      const SizedBox(height: 12),
+                      buildMatrizTransporteWidget(),
                       const SizedBox(height: 16),
-                    ],
-                    if (ultimoCostoTotal != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.successSoft,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.success,
-                            width: 1.5,
+                      if (errorCalculo != null) ...[
+                        Text(
+                          errorCalculo!,
+                          style: const TextStyle(
+                            color: AppColors.warningText,
+                            height: 1.5,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              modoActual == OptimizationMode.minimize
-                                  ? 'Resultado Óptimo (Min)'
-                                  : 'Resultado Óptimo (Max)',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.successText,
-                                fontSize: 16,
-                              ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (ultimoCostoTotal != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.successSoft,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.success,
+                              width: 1.5,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Valor Total: $ultimoCostoTotal',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: AppColors.successText,
-                              ),
-                            ),
-                            if (ofertaSinUtilizar > 0)
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                'Oferta sin utilizar: $ofertaSinUtilizar',
+                                modoActual == OptimizationMode.minimize
+                                    ? 'Resultado Óptimo (Min)'
+                                    : 'Resultado Óptimo (Max)',
                                 style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.successText,
+                                  fontSize: 16,
                                 ),
                               ),
-                            if (demandaPendiente > 0)
+                              const SizedBox(height: 8),
                               Text(
-                                'Demanda pendiente: $demandaPendiente',
+                                'Valor Total: $ultimoCostoTotal',
                                 style: const TextStyle(
-                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: AppColors.successText,
                                 ),
                               ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'Asignaciones Optimizadas:',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: AppColors.text,
-                              ),
-                            ),
-                            ...detalleAsignaciones.map(
-                              (asig) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 2.0,
-                                ),
-                                child: Text(
-                                  '• $asig',
+                              if (ofertaSinUtilizar > 0)
+                                Text(
+                                  'Oferta sin utilizar: $ofertaSinUtilizar',
                                   style: const TextStyle(
-                                    fontSize: 12.5,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
+                              if (demandaPendiente > 0)
+                                Text(
+                                  'Demanda pendiente: $demandaPendiente',
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Asignaciones Optimizadas:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: AppColors.text,
+                                ),
                               ),
-                            ),
-                          ],
+                              ...detalleAsignaciones.map(
+                                (asig) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2.0,
+                                  ),
+                                  child: Text(
+                                    '• $asig',
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               )
             : null,
@@ -904,166 +915,17 @@ class _EsquinaNorOesteScreenState extends State<EsquinaNorOesteScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        headingRowHeight: max(
-          56,
-          56 * MediaQuery.textScalerOf(context).scale(1),
-        ),
-        headingRowColor: WidgetStateProperty.all(AppColors.successSoft),
-        columns: [
-          const DataColumn(
-            label: Text(
-              'Origen \\ Dest',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-            ),
-          ),
-          ...destinos.map(
-            (d) => DataColumn(
-              label: SizedBox(
-                width: 95,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      d.nombre,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.text,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    SizedBox(
-                      height: 30,
-                      child: TextField(
-                        controller:
-                            TextEditingController(
-                                text: '${demandas[d.id] ?? 10}',
-                              )
-                              ..selection = TextSelection.collapsed(
-                                offset: '${demandas[d.id] ?? 10}'.length,
-                              ),
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.text,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 6,
-                          ),
-                          border: OutlineInputBorder(),
-                          labelText: 'Dem',
-                          labelStyle: TextStyle(fontSize: 9),
-                        ),
-                        onChanged: (val) {
-                          final numVal = int.tryParse(val);
-                          if (numVal != null) {
-                            demandas[d.id] = numVal;
-                            if (ultimoCostoTotal != null ||
-                                errorCalculo != null) {
-                              setState(_invalidarResultado);
-                            }
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const DataColumn(
-            label: Text(
-              'Oferta',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-            ),
-          ),
-        ],
-        rows: origenes.map((o) {
-          return DataRow(
-            cells: [
-              DataCell(
-                Text(
-                  o.nombre,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
-                  ),
-                ),
-              ),
-              ...destinos.map((d) {
-                final c = conexiones.firstWhere(
-                  (con) => con.nodoA == o.id && con.nodoB == d.id,
-                  orElse: () => Conexion(
-                    nodoA: '',
-                    nodoB: '',
-                    peso: 0,
-                    tipo: '',
-                    color: Colors.transparent,
-                  ),
-                );
-                return DataCell(
-                  Text(
-                    c.nodoA.isNotEmpty ? '${c.peso}' : '—',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                );
-              }),
-              DataCell(
-                SizedBox(
-                  width: 75,
-                  height: 32,
-                  child: TextField(
-                    controller:
-                        TextEditingController(text: '${ofertas[o.id] ?? 10}')
-                          ..selection = TextSelection.collapsed(
-                            offset: '${ofertas[o.id] ?? 10}'.length,
-                          ),
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 6,
-                      ),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (val) {
-                      final numVal = int.tryParse(val);
-                      if (numVal != null) {
-                        ofertas[o.id] = numVal;
-                        if (ultimoCostoTotal != null || errorCalculo != null) {
-                          setState(_invalidarResultado);
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
+    return TransportMatrix(
+      formKey: _matrixFormKey,
+      problem: _crearProblemaTransporte(),
+      onSupplyChanged: (id, value) => setState(() {
+        if (value != null) ofertas[id] = value;
+        _invalidarResultado();
+      }),
+      onDemandChanged: (id, value) => setState(() {
+        if (value != null) demandas[id] = value;
+        _invalidarResultado();
+      }),
     );
   }
 }

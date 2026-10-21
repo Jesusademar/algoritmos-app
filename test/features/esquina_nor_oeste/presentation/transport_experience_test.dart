@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
+import 'package:app_grafos/features/esquina_nor_oeste/presentation/widgets/transport_painter.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
+import 'package:app_grafos/shared/graph_editor/widgets/graph_canvas_viewport.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
 
 void main() {
@@ -19,6 +21,12 @@ void main() {
         MaterialApp(theme: AppTheme.dark, home: const EsquinaNorOesteScreen()),
       );
       await tester.pumpAndSettle();
+      NorOestePainter canvasPainter() =>
+          tester
+                  .widget<GraphCanvasViewport>(find.byType(GraphCanvasViewport))
+                  .painter
+              as NorOestePainter;
+      expect(canvasPainter().optimalRoutes, isEmpty);
       // Seed editor data, then exercise the real matrix and calculate controls.
       final dynamic state = tester.state(find.byType(EsquinaNorOesteScreen));
       state.nodos = <Nodo>[
@@ -49,6 +57,7 @@ void main() {
       await tester.tap(find.text('Calcular mínimo'));
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 40'), findsOneWidget);
+      expect(canvasPainter().optimalRoutes, {('a', 'y'): 10, ('b', 'x'): 10});
       expect(
         find.text('A ➔ Y (Cant: 10, Costo Unit: 2)', skipOffstage: false),
         findsNothing,
@@ -59,11 +68,13 @@ void main() {
       await tester.tap(find.text('Maximizar'));
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 40'), findsNothing);
+      expect(canvasPainter().optimalRoutes, isEmpty);
       await tester.ensureVisible(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 1010'), findsOneWidget);
+      expect(canvasPainter().optimalRoutes, {('a', 'x'): 10, ('b', 'y'): 10});
       expect(find.text('• B ➔ Y (Cant: 10, Costo Unit: 100)'), findsOneWidget);
       // Different totals calculate directly, with residual quantities in the result.
       await tester.ensureVisible(find.byType(TextField).first);
@@ -71,11 +82,13 @@ void main() {
       await tester.enterText(find.byType(TextField).first, '9');
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 1010'), findsNothing);
+      expect(canvasPainter().optimalRoutes, isEmpty);
       await tester.ensureVisible(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 1009'), findsOneWidget);
+      expect(canvasPainter().optimalRoutes, {('a', 'x'): 9, ('b', 'y'): 10});
       expect(find.text('Oferta sin utilizar: 1'), findsOneWidget);
       expect(find.textContaining('Equilibra'), findsNothing);
       expect(find.textContaining('Clic izq:'), findsNothing);
@@ -88,6 +101,7 @@ void main() {
       await tester.tap(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       expect(find.text('Valor Total: 1010'), findsOneWidget);
+      expect(canvasPainter().optimalRoutes, {('a', 'x'): 10, ('b', 'y'): 10});
       expect(find.text('Demanda pendiente: 1'), findsOneWidget);
       state.conexiones = <Conexion>[];
       await tester.ensureVisible(find.text('Calcular máximo'));
@@ -95,6 +109,10 @@ void main() {
       await tester.tap(find.text('Calcular máximo'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Las rutas disponibles'), findsOneWidget);
+      expect(canvasPainter().optimalRoutes, isEmpty);
+      await tester.tap(find.text('Limpiar lienzo'));
+      await tester.pumpAndSettle();
+      expect(canvasPainter().optimalRoutes, isEmpty);
       expect(tester.takeException(), isNull);
     });
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
+import 'package:app_grafos/features/network_algorithms/domain/network_algorithm.dart';
+import 'package:app_grafos/features/network_algorithms/presentation/screens/network_algorithm_screen.dart';
 import 'package:app_grafos/features/assignment/presentation/screens/asignacion_screen.dart';
 import 'package:app_grafos/features/binary_tree/presentation/screens/binary_tree_screen.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
@@ -13,6 +15,12 @@ import 'package:app_grafos/shared/help/algorithm_manuals.dart';
 
 void main() {
   final screens = <AlgorithmManual, Widget>{
+    AlgorithmManual.kruskal: const NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.kruskal,
+    ),
+    AlgorithmManual.dijkstra: const NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.dijkstra,
+    ),
     AlgorithmManual.graph: const GrafoScreen(),
     AlgorithmManual.assignment: const AsignacionScreen(),
     AlgorithmManual.transport: const EsquinaNorOesteScreen(),
@@ -23,7 +31,7 @@ void main() {
   };
   for (final size in [const Size(390, 844), const Size(1280, 900)]) {
     testWidgets(
-      'los siete manuales abren desde su pantalla y permiten leer hasta el final a ${size.width}',
+      'los nueve manuales abren desde su pantalla y permiten leer hasta el final a ${size.width}',
       (tester) async {
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;

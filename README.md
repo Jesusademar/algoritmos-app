@@ -11,7 +11,13 @@ desarrollado con Flutter por Jesus Canqui, Miguel Sanchez y Jenny Quispe.
 - **Johnson / red de actividades:** tiempos tempranos y tardíos, holguras y
   ruta crítica; inicio fijo en cero y validación de ciclos y conexiones.
 - **Esquina Noroeste / transporte:** distribución de oferta y demanda,
-  optimización de costos y balance automático.
+  optimización de costos, matriz compacta y fila o columna ficticia visible al balancear.
+- **Kruskal:** árbol de expansión mínima o máxima en redes sin dirección; bosque mínimo
+  si la red está desconectada, conexiones resaltadas y procedimiento por pasos.
+- **Dijkstra:** rutas mínimas dirigidas con pesos no negativos, selección de inicio
+  y destino, distancias a todos los nodos y procedimiento de relajación. El modo
+  Maximizar obtiene rutas más largas mediante orden topológico y requiere una red
+  sin ciclos; no utiliza Dijkstra para maximizar.
 - **Ordenamiento:** Selection, Insertion, Merge y Shell; sentido ascendente o
   descendente, reproducción por pasos y reporte Big O al finalizar. Cantidad y
   rango aleatorio definidos por el usuario, repetición opcional y enteros de
@@ -20,7 +26,7 @@ desarrollado con Flutter por Jesus Canqui, Miguel Sanchez y Jenny Quispe.
 - **Árboles binarios:** inserción manual o aleatoria por rango, nodos móviles,
   recorridos Pre-order, In-order y Post-order, y reconstrucción con dos recorridos.
 
-El dashboard ofrece ejemplos preparados para los seis módulos. La carrera de
+El dashboard ofrece ejemplos preparados para los ocho módulos. La carrera de
 ordenamiento compara los cuatro métodos con una entrada común, controles de
 reproducción, línea de tiempo y métricas al terminar. Sus turnos visuales no
 representan mediciones de velocidad real.
@@ -33,6 +39,11 @@ En Asignación y Esquina Noroeste, calcula una solución y pulsa **Ver procedimi
 matemático** para consultar matrices, restricciones, operaciones y el costo final.
 El procedimiento registra la búsqueda de asignaciones y, en transporte, la
 distribución inicial noroeste y sus ajustes de optimización.
+En las pizarras, arrastrar el fondo desplaza la vista y arrastrar un nodo lo
+acomoda. Los controles de zoom y encuadre recuperan nodos fuera de pantalla;
+se admiten rueda y zoom con dos dedos. La navegación no modifica las coordenadas
+guardadas ni los resultados del algoritmo. En árboles también se conserva el
+encuadre automático.
 La interfaz se adapta a pantallas móviles, tabletas y escritorio. El guardado
 usa descarga en navegador y selección de destino en aplicaciones nativas.
 Los documentos nuevos de ordenamiento usan la versión 2 y guardan los números
@@ -55,11 +66,12 @@ lib/
 │   ├── assignment/              # Dominio y presentación
 │   ├── johnson/                 # Dominio y presentación
 │   ├── esquina_nor_oeste/       # Dominio y presentación
+│   ├── network_algorithms/      # Kruskal y Dijkstra: dominio y presentación
 │   ├── sorting/                 # Dominio, estado y presentación
 │   └── binary_tree/             # Dominio y presentación
 └── shared/
     ├── domain/                  # Procedimientos matemáticos de los módulos
-    ├── graph_editor/            # Modelos visuales y geometría
+    ├── graph_editor/            # Modelos, geometría y navegación de pizarras
     ├── persistence/             # Documentos y archivos JSON
     └── widgets/                 # Encabezados, tarjetas, paneles y diálogos
 ```

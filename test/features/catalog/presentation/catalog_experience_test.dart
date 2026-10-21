@@ -19,7 +19,7 @@ void main() {
         MaterialApp(theme: AppTheme.dark, home: const MenuPrincipalScreen()),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(AlgorithmLaunchCard), findsNWidgets(6));
+      expect(find.byType(AlgorithmLaunchCard), findsNWidgets(8));
       await tester.enterText(find.byType(TextField), '  ARBOLES ');
       await tester.pumpAndSettle();
       expect(find.byType(AlgorithmLaunchCard), findsOneWidget);
@@ -30,7 +30,7 @@ void main() {
       expect(find.text('No encontramos ese algoritmo'), findsOneWidget);
       await tester.enterText(find.byType(TextField), '');
       await tester.pumpAndSettle();
-      expect(find.byType(AlgorithmLaunchCard), findsNWidgets(6));
+      expect(find.byType(AlgorithmLaunchCard), findsNWidgets(8));
       await tester.enterText(find.byType(TextField), 'arboles');
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Abrir módulo'));

@@ -40,7 +40,7 @@ void main() {
         of: find.byType(AlgorithmCardGrid),
         matching: find.byType(InkWell),
       );
-      expect(cards, findsNWidgets(6));
+      expect(cards, findsNWidgets(8));
       if (size.width >= 1000) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.sendKeyEvent(LogicalKeyboardKey.enter);

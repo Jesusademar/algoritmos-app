@@ -30,11 +30,20 @@ GraphDocument graphExample(String module) {
       posicion: const Offset(280, 235),
     ),
   ];
-  final pairs = bipartite
+  final pairs = (module == 'kruskal' || module == 'dijkstra')
+      ? [
+          ('a', 'b', 4),
+          ('a', 'c', 1),
+          ('c', 'b', 2),
+          ('b', 'd', 1),
+          ('c', 'd', 5),
+        ]
+      : bipartite
       ? [('a', 'c', 1), ('a', 'd', 2), ('b', 'c', 2), ('b', 'd', 100)]
       : [('a', 'b', 4), ('a', 'c', 2), ('b', 'd', 3), ('c', 'd', 8)];
   final color = switch (module) {
-    'graph' => AppColors.graph,
+    'graph' || 'dijkstra' => AppColors.graph,
+    'kruskal' => AppColors.sorting,
     'johnson' => AppColors.johnson,
     'transport' => AppColors.success,
     _ => AppColors.primary,
@@ -48,11 +57,15 @@ GraphDocument graphExample(String module) {
           nodoA: pair.$1,
           nodoB: pair.$2,
           peso: pair.$3,
-          tipo: 'unidireccional',
+          tipo: module == 'kruskal' ? 'sin_direccion' : 'unidireccional',
           color: color,
         ),
     ],
     metadata: {
+      if (module == 'kruskal' || module == 'dijkstra') ...{
+        'source': 'a',
+        'target': 'd',
+      },
       if (module == 'assignment') 'tipoOptimizacion': 'minimizar',
       if (module == 'johnson') ...{
         'nodoInicialSeleccionadoId': 'a',

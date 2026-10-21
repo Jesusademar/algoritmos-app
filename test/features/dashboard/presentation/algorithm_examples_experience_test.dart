@@ -13,7 +13,7 @@ import 'package:app_grafos/features/sorting/presentation/screens/sorting_visuali
 void main() {
   for (final size in [const Size(390, 844), const Size(1280, 900)]) {
     testWidgets(
-      'los seis ejemplos abren datos listos y calculan a ${size.width}',
+      'los ocho ejemplos abren datos listos y calculan a ${size.width}',
       (tester) async {
         tester.view.devicePixelRatio = 1;
         tester.view.physicalSize = size;

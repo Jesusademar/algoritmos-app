@@ -120,7 +120,7 @@ void main() {
     );
     expect(
       result.procedure!.steps.last.expressions.join('\n'),
-      contains('Demanda pendiente'),
+      contains('Origen ficticio'),
     );
     expect(result.procedure!.steps.last.expressions.last, endsWith('= 40'));
     expect(solver.solve(problem(OptimizationMode.minimize))!.procedure, isNull);

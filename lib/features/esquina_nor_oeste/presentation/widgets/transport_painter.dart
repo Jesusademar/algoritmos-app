@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
+import 'package:app_grafos/shared/graph_editor/geometry/offset_geometry.dart';
+import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 import 'package:app_grafos/shared/graph_editor/models/conexion.dart';
 import 'package:app_grafos/shared/graph_editor/models/nodo.dart';
 
@@ -10,66 +12,96 @@ class NorOestePainter extends CustomPainter {
   final Nodo? nodoOrigen;
   final Map<String, int> ofertas;
   final Map<String, int> demandas;
+  final Map<(String, String), num> optimalRoutes;
 
   NorOestePainter(
     this.nodos,
     this.conexiones,
     this.nodoOrigen,
     this.ofertas,
-    this.demandas,
-  );
+    this.demandas, {
+    this.optimalRoutes = const {},
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paintConexion = Paint()
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-
-    for (var conexion in conexiones) {
-      try {
-        final nodoA = nodos.firstWhere((n) => n.id == conexion.nodoA);
-        final nodoB = nodos.firstWhere((n) => n.id == conexion.nodoB);
-        paintConexion.color = conexion.color;
-
-        canvas.drawLine(nodoA.posicion, nodoB.posicion, paintConexion);
-
-        final centro = Offset(
-          (nodoA.posicion.dx + nodoB.posicion.dx) / 2,
-          (nodoA.posicion.dy + nodoB.posicion.dy) / 2,
-        );
-        final textPainter = TextPainter(
+    final nodesById = {for (final node in nodos) node.id: node};
+    // Las rutas óptimas se pintan al final para conservar el brillo en cruces.
+    for (final optimalPass in [false, true]) {
+      for (final conexion in conexiones) {
+        final quantity = optimalRoutes[(conexion.nodoA, conexion.nodoB)];
+        final isOptimal = quantity != null && quantity > 0;
+        if (isOptimal != optimalPass) continue;
+        final from = nodesById[conexion.nodoA];
+        final to = nodesById[conexion.nodoB];
+        if (from == null || to == null) continue;
+        final direction = (to.posicion - from.posicion).normalize();
+        final start = from.posicion + direction * 26;
+        final end = to.posicion - direction * 26;
+        if (isOptimal) {
+          for (final layer in <(Color, double)>[
+            (AppColors.success.withValues(alpha: 0.35), 14),
+            (AppColors.success.withValues(alpha: 0.8), 8),
+            (AppColors.text, 3.5),
+          ]) {
+            canvas.drawLine(
+              start,
+              end,
+              Paint()
+                ..color = layer.$1
+                ..strokeWidth = layer.$2
+                ..style = PaintingStyle.stroke
+                ..strokeCap = StrokeCap.round,
+            );
+          }
+        } else {
+          canvas.drawLine(
+            start,
+            end,
+            Paint()
+              ..color = optimalRoutes.isEmpty
+                  ? conexion.color
+                  : conexion.color.withValues(alpha: 0.3)
+              ..strokeWidth = 2.5
+              ..style = PaintingStyle.stroke,
+          );
+        }
+        final center = (start + end) / 2;
+        final label = TextPainter(
           text: TextSpan(
-            text: ' C: ${conexion.peso} ',
-            style: const TextStyle(
+            text: isOptimal
+                ? ' C: ${conexion.peso} · Q: ${mathNumber(quantity)} '
+                : ' C: ${conexion.peso} ',
+            style: TextStyle(
               fontFamily: 'Roboto',
-              color: AppColors.text,
-              fontSize: 11,
+              color: isOptimal ? AppColors.successText : AppColors.text,
+              fontSize: isOptimal ? 12 : 11,
               fontWeight: FontWeight.bold,
             ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-
-        final rectBg = Rect.fromCenter(
-          center: centro,
-          width: textPainter.width + 6,
-          height: textPainter.height + 4,
+        final background = RRect.fromRectAndRadius(
+          Rect.fromCenter(
+            center: center,
+            width: label.width + 6,
+            height: label.height + 4,
+          ),
+          const Radius.circular(4),
         );
         canvas.drawRRect(
-          RRect.fromRectAndRadius(rectBg, const Radius.circular(4)),
-          Paint()..color = AppColors.surface,
-        );
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(rectBg, const Radius.circular(4)),
+          background,
           Paint()
-            ..color = AppColors.border
+            ..color = isOptimal ? AppColors.successSoft : AppColors.surface,
+        );
+        canvas.drawRRect(
+          background,
+          Paint()
+            ..color = isOptimal ? AppColors.success : AppColors.border
             ..style = PaintingStyle.stroke,
         );
-        textPainter.paint(
-          canvas,
-          centro - Offset(textPainter.width / 2, textPainter.height / 2),
-        );
-      } catch (_) {}
+        label.paint(canvas, center - Offset(label.width / 2, label.height / 2));
+      }
     }
 
     for (var nodo in nodos) {

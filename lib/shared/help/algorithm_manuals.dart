@@ -19,7 +19,7 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Acomodar, editar y eliminar',
-        'Arrastra los nodos para ordenar el dibujo. En computadora usa clic derecho sobre un nodo o conexión; en pantalla táctil utiliza pulsación larga. También puedes abrir las opciones con doble clic. Cambia etiquetas o pesos, o elimina el elemento.',
+        'Arrastra los nodos para ordenar el dibujo. Arrastra el fondo para desplazar la pizarra; usa zoom o Ajustar nodos a la vista para ver la red completa. En computadora usa clic derecho sobre un nodo o conexión; en pantalla táctil utiliza pulsación larga. También puedes abrir las opciones con doble clic. Cambia etiquetas o pesos, o elimina el elemento.',
       ),
       ManualSection(
         'Leer la matriz y los grados',
@@ -69,7 +69,7 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Editar y recalcular',
-        'Arrastra nodos para acomodarlos. Usa clic derecho, doble clic o pulsación larga para editar o eliminar. Los cambios de datos o de objetivo invalidan el cálculo anterior y su procedimiento. Pulsa nuevamente Calcular Asignación Óptima.',
+        'Arrastra nodos para acomodarlos. Arrastra el fondo para mover la vista y usa zoom o Ajustar nodos a la vista para encontrar todos los nodos. Usa clic derecho, doble clic o pulsación larga para editar o eliminar. Los cambios de datos o de objetivo invalidan el cálculo anterior y su procedimiento. Pulsa nuevamente Calcular Asignación Óptima.',
       ),
       ManualSection(
         'Guardar y cargar',
@@ -91,11 +91,11 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Resolver diferencias entre totales',
-        'Puedes calcular directamente aunque la oferta total y la demanda total difieran. El sistema introduce un auxiliar de costo cero. Oferta sin utilizar indica sobrante; Demanda pendiente indica una necesidad que no pudo cubrirse con oferta real.',
+        'Puedes calcular directamente aunque la oferta total y la demanda total difieran. La matriz muestra un Origen ficticio cuando falta oferta o un Destino ficticio cuando sobra oferta. Su cantidad es la diferencia entre los totales y sus costos son cero. Esta fila o columna se actualiza al editar cantidades y no es editable; los nodos del dibujo siguen siendo los reales. Oferta sin utilizar indica sobrante; Demanda pendiente indica una necesidad que no pudo cubrirse con oferta real.',
       ),
       ManualSection(
         'Calcular mínimo o máximo',
-        'Elige Minimizar o Maximizar y pulsa el botón Calcular correspondiente. Esquina noroeste construye la distribución inicial por orden de filas y columnas, sin elegir por el precio. Después se ajusta esa solución según el objetivo. Por eso el resultado final puede diferir de la distribución noroeste inicial.',
+        'Elige Minimizar o Maximizar y pulsa el botón Calcular correspondiente. Esquina noroeste construye la distribución inicial por orden de filas y columnas, sin elegir por el precio. Después se ajusta esa solución según el objetivo. Por eso el resultado final puede diferir de la distribución noroeste inicial. Las rutas que transportan cantidades positivas en la solución óptima brillan en verde en el lienzo; C indica el costo unitario y Q la cantidad enviada. Al cambiar los datos o el objetivo, el resaltado se borra hasta volver a calcular.',
       ),
       ManualSection(
         'Ver procedimiento matemático',
@@ -107,7 +107,7 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Corregir un problema sin solución',
-        'Si las rutas no permiten enviar las cantidades, revisa las conexiones permitidas, ofertas y demandas. En computadora, usa clic derecho sobre un nodo o conexión para editarlo o eliminarlo; arrastra los nodos para acomodarlos. No sustituyas una ruta prohibida por costo cero salvo que realmente exista. Tras editar datos, mover nodos de grupo o cambiar el objetivo, vuelve a calcular.',
+        'Si las rutas no permiten enviar las cantidades, revisa las conexiones permitidas, ofertas y demandas. En computadora, usa clic derecho sobre un nodo o conexión para editarlo o eliminarlo; arrastra los nodos para acomodarlos. Arrastra el fondo para desplazar la pizarra y usa zoom o Ajustar nodos a la vista para ver toda la red. La matriz adapta sus columnas al panel; si hay muchas, deslízala horizontalmente. No sustituyas una ruta prohibida por costo cero salvo que realmente exista. Tras editar datos, mover nodos de grupo o cambiar el objetivo, vuelve a calcular.',
       ),
       ManualSection(
         'Guardar y cargar',
@@ -129,27 +129,83 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Calcular la red',
-        'Pulsa Calcular para abrir el resultado. Revisa que las dependencias reflejen el proyecto y que los eventos estén conectados como esperas. El panel muestra el inicio fijo en cero y los tiempos calculados; vuelve a calcular después de modificar la red.',
+        'En el panel lateral (debajo del lienzo en móvil), elige Minimizar o Maximizar y pulsa Calcular red, o usa el botón de reproducción del encabezado. Revisa que las dependencias reflejen el proyecto y que los eventos estén conectados como esperas. El panel muestra el inicio fijo en cero y las etiquetas calculadas. Después de calcular, editar un peso, añadir o eliminar conexiones y cambiar de modo actualiza el resultado automáticamente. Los eventos sin ruta desde el inicio aparecen con —.',
       ),
       ManualSection(
         'Interpretar tiempos y holguras',
-        'El tiempo temprano representa cuándo puede alcanzarse un evento según sus predecesores. El tardío indica el margen respecto al final calculado. La holgura es la diferencia entre ambos. En Maximizar se resaltan actividades críticas sin margen: retrasarlas puede retrasar el proyecto.',
+        'En Maximizar, Ida es el mayor costo acumulado desde el inicio y Retorno es el tiempo tardío respecto al final calculado; H = Retorno − Ida. En Minimizar, Ida es el menor costo acumulado, Retorno = total mínimo − costo mínimo restante y el exceso es Ida − Retorno. El retorno mínimo puede ser negativo: es una etiqueta de comparación, no una fecha de ejecución. Cada arista muestra su propio margen o exceso. Se resaltan todas las rutas óptimas con valor cero.',
       ),
       ManualSection(
         'Entender los dos modos',
-        'Maximizar utiliza la duración total y resalta la ruta crítica de la red. En Minimizar, esta implementación selecciona el evento terminal con menor tiempo temprano y reconstruye su camino de precedencias. Los tiempos tempranos se calculan respetando todas las dependencias; este modo no acorta automáticamente las duraciones ni equivale a Dijkstra.',
+        'Maximizar toma el mayor acumulado en cada evento y encuentra la ruta de mayor costo hasta un terminal alcanzable; en una red de actividades es la ruta crítica. Minimizar toma el menor acumulado en cada evento y encuentra la ruta de menor costo hasta un terminal alcanzable. Comparar rutas mínimas no sustituye la planificación CPM de todas las tareas. Si solo existe una ruta, o las rutas empatan, ambos modos pueden dar el mismo total correctamente.',
       ),
       ManualSection(
         'Ejemplo sencillo',
-        'Construye A a B con duración 4 y B a C con duración 6, inicio en A con valor 0. En Maximizar, C se alcanza en 10 y la cadena es crítica. Añade una rama y compara sus tiempos y holguras. Mantén todas las actividades en la misma unidad.',
+        'Construye A→B=3, A→C=2, B→D=4 y C→D=6, con inicio A=0. Minimizar elige A→B→D y obtiene 7. Maximizar elige A→C→D y obtiene 8. Si cambias A→B a 10, el mínimo pasa a 8 y el máximo a 14.',
       ),
       ManualSection(
         'Mover y corregir',
-        'Arrastra los eventos para ordenar el dibujo. Usa clic derecho, doble clic o pulsación larga para editar nombres, duraciones o eliminar elementos. Si se rechaza una conexión, comprueba su sentido y si cerraría un ciclo.',
+        'Arrastra los eventos para ordenar el dibujo. Arrastra el fondo para mover la vista y utiliza zoom o Ajustar nodos a la vista para ver toda la red. Usa clic derecho, doble clic o pulsación larga para editar nombres, duraciones o eliminar elementos. Si se rechaza una conexión, comprueba su sentido y si cerraría un ciclo.',
       ),
       ManualSection(
         'Guardar y cargar',
         'En Más opciones guarda un JSON con la red y el modo; el inicio se guarda siempre en cero. Carga ese archivo para continuar y vuelve a calcular. Los archivos con conexiones incompatibles se rechazan. Guarda antes de limpiar o reemplazar el ejercicio.',
+      ),
+    ],
+  ),
+  kruskal(
+    'Kruskal',
+    'Conecta todos los nodos mediante un árbol de expansión mínima o máxima, según el objetivo. Las conexiones no tienen dirección.',
+    [
+      ManualSection(
+        'Crear y conectar',
+        'Toca una zona vacía para crear un nodo con nombre único. Selecciona dos nodos e introduce el peso entero. Se permiten pesos cero o negativos. No se permiten bucles. Seleccionar una pareja ya conectada permite editar su peso.',
+      ),
+      ManualSection(
+        'Calcular el árbol',
+        'Selecciona Minimizar o Maximizar y pulsa Calcular árbol mínimo o Calcular árbol máximo. Minimizar ordena las conexiones de menor a mayor peso; Maximizar, de mayor a menor. Se aceptan las que unen componentes diferentes, evitando ciclos. Las elegidas brillan en verde y el panel muestra su suma. Si el grafo está desconectado se indica un bosque mínimo o máximo según el objetivo; no se inventan conexiones. Cambiar el objetivo borra el resultado anterior hasta recalcular.',
+      ),
+      ManualSection(
+        'Ver procedimiento matemático',
+        'Después de calcular, abre Ver procedimiento matemático para ver el orden de las aristas, las aceptadas o descartadas, los componentes y el costo acumulado. Puede existir más de un árbol mínimo cuando hay empates. Big O aparece después del cálculo: O(E log E).',
+      ),
+      ManualSection(
+        'Navegar y editar',
+        'Arrastra el fondo para mover la vista; arrastra un nodo para acomodarlo. Usa los botones de zoom, la rueda o dos dedos para acercar o alejar, y Ajustar nodos a la vista para ver la red completa. Toca el peso para editar una arista. Un doble clic, clic derecho o pulsación larga sobre un nodo permite renombrarlo o eliminarlo. Editar los datos borra el resultado anterior; mover la vista o acomodar nodos no cambia el costo.',
+      ),
+      ManualSection(
+        'Guardar, cargar y practicar',
+        'Más opciones permite Guardar y Cargar archivos JSON con nodos, pesos y posiciones. Para practicar, crea A—B=4, A—C=1, C—B=2, B—D=1 y C—D=5. El árbol mínimo cuesta 4 y el máximo 11. El JSON conserva el objetivo; los archivos anteriores se abren en Minimizar. Limpiar lienzo elimina el ejercicio actual.',
+      ),
+    ],
+  ),
+  dijkstra(
+    'Dijkstra',
+    'Compara rutas de costo mínimo y máximo desde un inicio, con pesos no negativos. Minimizar utiliza Dijkstra; Maximizar usa orden topológico y requiere una red sin ciclos.',
+    [
+      ManualSection(
+        'Crear la red',
+        'Toca para crear nodos con nombres únicos. Selecciona primero el origen y luego el destino de cada conexión; la flecha muestra el sentido. Introduce un peso entero no negativo. Cero es válido; los pesos negativos y bucles se rechazan, también al cargar archivos.',
+      ),
+      ManualSection(
+        'Elegir inicio y destino',
+        'En el panel selecciona el Nodo de inicio y el Nodo de destino. Elige Minimizar o Maximizar y pulsa Calcular rutas. La ruta al destino brilla en verde y se muestra la suma de pesos. También se calculan las distancias a todos los nodos. Puedes cambiar el destino sin recalcular; cambiar el inicio o el objetivo requiere un nuevo cálculo.',
+      ),
+      ManualSection(
+        'Interpretar el resultado',
+        'd indica la distancia mínima o máxima según el objetivo; el inicio siempre vale cero para sí mismo. ∞ en mínimo, −∞ en máximo o Sin ruta indica un nodo inalcanzable siguiendo las flechas. Si existen varios caminos de igual costo se resalta uno válido. El destino igual al inicio tiene distancia cero y no necesita conexiones.',
+      ),
+      ManualSection(
+        'Ver procedimiento matemático',
+        'Después del cálculo abre Ver procedimiento matemático. Cada paso fija el nodo pendiente de menor distancia y aplica d(v)=min(d(v), d(u)+peso). Minimizar selecciona el menor pendiente por exploración: Big O O(V² + E). Maximizar usa programación dinámica en orden topológico y aplica d(v)=max(d(v), d(u)+peso), con Big O O(V + E). La complejidad y el método corresponden al modo calculado. Las redes con ciclos se rechazan en Maximizar; puedes seguir usándolas en Minimizar.',
+      ),
+      ManualSection(
+        'Navegar y corregir',
+        'Arrastra el fondo para desplazarte y los nodos para acomodarlos. Usa zoom, rueda o dos dedos, y Ajustar nodos a la vista. Toca un peso para editarlo; usa clic derecho, doble clic o pulsación larga para editar o eliminar nodos. Cambiar pesos o conexiones borra el resultado anterior.',
+      ),
+      ManualSection(
+        'Guardar, cargar y practicar',
+        'Más opciones permite Guardar y Cargar JSON con el dibujo, inicio y destino. Para practicar, crea A→B=4, A→C=1, C→B=2, B→D=1 y C→D=5. De A a D, el mínimo cuesta 4 y el máximo 6. El JSON conserva el objetivo; los archivos anteriores se abren en Minimizar. Guarda antes de limpiar o cargar otro ejercicio.',
       ),
     ],
   ),

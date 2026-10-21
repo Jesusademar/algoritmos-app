@@ -98,6 +98,25 @@ class _BinaryTreeCanvasState extends State<BinaryTreeCanvas> {
       ..scaleByDouble(scale, scale, 1, 1);
   }
 
+  void _zoom(double factor) {
+    final view = _viewport;
+    if (view == null) return;
+    final center = view.center(Offset.zero);
+    final anchor = _transform.toScene(center);
+    final scale = (_transform.value.getMaxScaleOnAxis() * factor).clamp(
+      0.02,
+      3.0,
+    );
+    _transform.value = Matrix4.identity()
+      ..translateByDouble(
+        center.dx - anchor.dx * scale,
+        center.dy - anchor.dy * scale,
+        0,
+        1,
+      )
+      ..scaleByDouble(scale, scale, 1, 1);
+  }
+
   void _move(int value, Offset delta) {
     final scale = _transform.value.getMaxScaleOnAxis();
     final next = _positions[value]! + delta / scale;
@@ -225,6 +244,16 @@ class _BinaryTreeCanvasState extends State<BinaryTreeCanvas> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    tooltip: 'Alejar árbol',
+                    onPressed: () => _zoom(1 / 1.25),
+                    icon: const Icon(Icons.remove_rounded),
+                  ),
+                  IconButton(
+                    tooltip: 'Acercar árbol',
+                    onPressed: () => _zoom(1.25),
+                    icon: const Icon(Icons.add_rounded),
+                  ),
                   IconButton(
                     tooltip: 'Ordenar nodos automáticamente',
                     icon: const Icon(Icons.auto_awesome_rounded),

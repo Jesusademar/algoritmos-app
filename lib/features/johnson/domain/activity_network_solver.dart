@@ -1,154 +1,124 @@
+import 'dart:collection';
+
 import 'package:app_grafos/features/johnson/domain/activity_network_problem.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_result.dart';
 import 'package:app_grafos/features/johnson/domain/activity_network_rules.dart';
 
-/// Calcula tiempos tempranos, tardíos, holguras y aristas de la ruta elegida.
-///
-/// Esta clase no conoce widgets, colores ni cuadros de diálogo. Por eso puede
-/// probarse y modificarse sin depender de Flutter.
+/// Rutas extremas en una red dirigida acíclica, con inicio fijo en cero.
+/// Maximizar usa máximo en la ida y mínimo en el retorno; Minimizar invierte
+/// ambas operaciones. Los nodos sin camino desde el inicio no reciben etiquetas.
 class ActivityNetworkSolver {
-  const ActivityNetworkSolver({this.maxRelaxationPasses = 100});
-
-  final int maxRelaxationPasses;
+  const ActivityNetworkSolver();
 
   ActivityNetworkResult solve(ActivityNetworkProblem problem) {
     final error = const ActivityNetworkRules().networkError(problem.edges);
     if (error != null) throw ArgumentError(error);
-    final incoming = <String, List<ActivityEdge>>{
-      for (final nodeId in problem.nodeIds) nodeId: <ActivityEdge>[],
-    };
-    final outgoing = <String, List<ActivityEdge>>{
-      for (final nodeId in problem.nodeIds) nodeId: <ActivityEdge>[],
-    };
-
+    final ids = problem.nodeIds.toSet();
+    if (ids.length != problem.nodeIds.length) {
+      throw ArgumentError('Los identificadores de los nodos deben ser únicos.');
+    }
+    final incoming = {for (final id in ids) id: <ActivityEdge>[]};
+    final outgoing = {for (final id in ids) id: <ActivityEdge>[]};
     for (final edge in problem.edges) {
-      incoming[edge.targetId]?.add(edge);
-      outgoing[edge.sourceId]?.add(edge);
+      if (!ids.contains(edge.sourceId) || !ids.contains(edge.targetId)) {
+        throw ArgumentError(
+          'Una conexión hace referencia a un nodo inexistente.',
+        );
+      }
+      incoming[edge.targetId]!.add(edge);
+      outgoing[edge.sourceId]!.add(edge);
+    }
+    if (problem.startNodeId != null && !ids.contains(problem.startNodeId)) {
+      throw ArgumentError('El nodo inicial no existe en la red.');
+    }
+    final degree = {for (final id in ids) id: incoming[id]!.length};
+    final queue = Queue<String>.of(ids.where((id) => degree[id] == 0));
+    final ordered = <String>[];
+    while (queue.isNotEmpty) {
+      final id = queue.removeFirst();
+      ordered.add(id);
+      for (final edge in outgoing[id]!) {
+        degree[edge.targetId] = degree[edge.targetId]! - 1;
+        if (degree[edge.targetId] == 0) queue.add(edge.targetId);
+      }
+    }
+    if (ordered.length != ids.length) {
+      throw ArgumentError('La red contiene un ciclo.');
     }
 
-    final earlyTimes = <String, int>{
-      for (final nodeId in problem.nodeIds) nodeId: 0,
+    final maximizing = problem.mode == NetworkOptimizationMode.maximize;
+    bool better(int candidate, int current) =>
+        maximizing ? candidate > current : candidate < current;
+    final forward = <String, int>{
+      if (problem.startNodeId case final start?)
+        start: 0
+      else
+        for (final id in ids.where((id) => incoming[id]!.isEmpty)) id: 0,
     };
-    final startNodeId = problem.startNodeId;
-    if (startNodeId != null && earlyTimes.containsKey(startNodeId)) {
-      earlyTimes[startNodeId] = problem.initialValue;
-    } else {
-      for (final nodeId in problem.nodeIds) {
-        if (incoming[nodeId]!.isEmpty) {
-          earlyTimes[nodeId] = problem.initialValue;
+    for (final id in ordered) {
+      final distance = forward[id];
+      if (distance == null) continue;
+      for (final edge in outgoing[id]!) {
+        final candidate = distance + edge.duration;
+        final previous = forward[edge.targetId];
+        if (previous == null || better(candidate, previous)) {
+          forward[edge.targetId] = candidate;
         }
       }
     }
+    final terminals = ordered
+        .where((id) => forward.containsKey(id) && outgoing[id]!.isEmpty)
+        .toList();
+    final total = terminals.isEmpty
+        ? 0
+        : terminals
+              .map((id) => forward[id]!)
+              .reduce((a, b) => better(a, b) ? a : b);
 
-    var changed = true;
-    var iterations = 0;
-    while (changed && iterations < maxRelaxationPasses) {
-      changed = false;
-      iterations++;
-      for (final edge in problem.edges) {
-        if (!earlyTimes.containsKey(edge.sourceId) ||
-            !earlyTimes.containsKey(edge.targetId)) {
-          continue;
-        }
-        final candidate = earlyTimes[edge.sourceId]! + edge.duration;
-        if (candidate > earlyTimes[edge.targetId]!) {
-          earlyTimes[edge.targetId] = candidate;
-          changed = true;
+    // Costo extremo que queda desde cada nodo hasta un terminal alcanzable.
+    final remaining = <String, int>{for (final id in terminals) id: 0};
+    for (final id in ordered.reversed) {
+      if (!forward.containsKey(id)) continue;
+      for (final edge in outgoing[id]!) {
+        final suffix = remaining[edge.targetId];
+        if (suffix == null) continue;
+        final candidate = edge.duration + suffix;
+        final previous = remaining[id];
+        if (previous == null || better(candidate, previous)) {
+          remaining[id] = candidate;
         }
       }
     }
-
-    var totalDuration = 0;
-    for (final time in earlyTimes.values) {
-      if (time > totalDuration) totalDuration = time;
-    }
-
-    final lateTimes = <String, int>{
-      for (final nodeId in problem.nodeIds) nodeId: totalDuration,
+    final backward = {
+      for (final id in forward.keys) id: total - remaining[id]!,
     };
-    changed = true;
-    iterations = 0;
-    while (changed && iterations < maxRelaxationPasses) {
-      changed = false;
-      iterations++;
-      for (final nodeId in problem.nodeIds) {
-        final nextEdges = outgoing[nodeId]!;
-        if (nextEdges.isEmpty) continue;
-
-        int? limit;
-        for (final edge in nextEdges) {
-          final targetTime = lateTimes[edge.targetId];
-          if (targetTime == null) continue;
-          final candidate = targetTime - edge.duration;
-          if (limit == null || candidate < limit) limit = candidate;
-        }
-        if (limit != null && limit < lateTimes[nodeId]!) {
-          lateTimes[nodeId] = limit;
-          changed = true;
-        }
-      }
-    }
-
-    final slacks = <String, int>{
-      for (final nodeId in problem.nodeIds)
-        nodeId: (lateTimes[nodeId]! - earlyTimes[nodeId]!).abs(),
+    final slacks = {
+      for (final id in forward.keys)
+        id: maximizing
+            ? backward[id]! - forward[id]!
+            : forward[id]! - backward[id]!,
     };
-    final criticalEdges = <String>{};
-
-    if (problem.mode == NetworkOptimizationMode.maximize) {
-      for (final edge in problem.edges) {
-        final sourceEarly = earlyTimes[edge.sourceId];
-        final targetLate = lateTimes[edge.targetId];
-        if (sourceEarly == null || targetLate == null) continue;
-        final edgeSlack = (targetLate - sourceEarly - edge.duration).abs();
-        if (edgeSlack == 0 &&
-            lateTimes[edge.sourceId] == earlyTimes[edge.sourceId]) {
-          criticalEdges.add(edge.id);
-        }
-      }
-    } else {
-      final finalNodes = problem.nodeIds
-          .where((nodeId) => outgoing[nodeId]!.isEmpty)
-          .toList();
-      String? optimalFinalNode;
-      int? lowestTotal;
-      for (final nodeId in finalNodes) {
-        final cost = earlyTimes[nodeId]!;
-        if (lowestTotal == null || cost < lowestTotal) {
-          lowestTotal = cost;
-          optimalFinalNode = nodeId;
-        }
-      }
-
-      if (optimalFinalNode != null && lowestTotal != null) {
-        totalDuration = lowestTotal;
-        String? current = optimalFinalNode;
-        final visited = <String>{};
-        while (current != null && visited.add(current)) {
-          ActivityEdge? bestIncoming;
-          int? lowestPreviousTime;
-          for (final edge in incoming[current]!) {
-            final sourceTime = earlyTimes[edge.sourceId]!;
-            if (sourceTime + edge.duration == earlyTimes[current] &&
-                (lowestPreviousTime == null ||
-                    sourceTime < lowestPreviousTime)) {
-              lowestPreviousTime = sourceTime;
-              bestIncoming = edge;
-            }
-          }
-          if (bestIncoming == null) break;
-          criticalEdges.add(bestIncoming.id);
-          current = bestIncoming.sourceId;
-        }
-      }
+    final edgeSlacks = <String, int>{};
+    for (final edge in problem.edges) {
+      final prefix = forward[edge.sourceId];
+      final suffix = remaining[edge.targetId];
+      if (prefix == null || suffix == null) continue;
+      final throughEdge = prefix + edge.duration + suffix;
+      edgeSlacks[edge.id] = maximizing
+          ? total - throughEdge
+          : throughEdge - total;
     }
-
     return ActivityNetworkResult(
-      earlyTimes: earlyTimes,
-      lateTimes: lateTimes,
+      earlyTimes: forward,
+      lateTimes: backward,
       slacks: slacks,
-      criticalEdgeIds: criticalEdges,
-      totalDuration: totalDuration,
+      edgeSlacks: edgeSlacks,
+      unreachableNodeIds: ids.difference(forward.keys.toSet()),
+      criticalEdgeIds: {
+        for (final entry in edgeSlacks.entries)
+          if (entry.value == 0) entry.key,
+      },
+      totalDuration: total,
     );
   }
 }

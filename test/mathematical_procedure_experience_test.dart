@@ -42,8 +42,12 @@ void main() {
           );
           final panelScroll = find
               .descendant(
-                of: find.byType(ListView).last,
-                matching: find.byType(Scrollable),
+                of: find.byType(Scaffold).last,
+                matching: find.byWidgetPredicate(
+                  (widget) =>
+                      widget is Scrollable &&
+                      widget.axisDirection == AxisDirection.down,
+                ),
               )
               .first;
           Future<void> showControl(Finder control) async {

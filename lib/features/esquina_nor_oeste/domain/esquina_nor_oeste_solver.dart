@@ -36,23 +36,13 @@ class EsquinaNorOesteSolver {
     final totalSupply = origins.fold<num>(0, (sum, o) => sum + o.supply);
     final totalDemand = destinations.fold<num>(0, (sum, d) => sum + d.demand);
     if (!totalSupply.isFinite || !totalDemand.isFinite) return null;
-    if (totalSupply - totalDemand > _epsilon) {
-      destinations.add(
-        EsquinaNorOesteItem(
-          id: '',
-          label: 'Oferta sin utilizar',
-          demand: totalSupply - totalDemand,
-        ),
-      );
-    } else if (totalDemand - totalSupply > _epsilon) {
-      origins.add(
-        EsquinaNorOesteItem(
-          id: '',
-          label: 'Demanda pendiente',
-          supply: totalDemand - totalSupply,
-        ),
-      );
-    }
+    final balanced = problem.toBalanced();
+    origins
+      ..clear()
+      ..addAll(balanced.origins);
+    destinations
+      ..clear()
+      ..addAll(balanced.destinations);
     final targetTotal = max(totalSupply, totalDemand);
 
     num? unitCost(int i, int j) =>

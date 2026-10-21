@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
+import 'package:app_grafos/features/network_algorithms/domain/network_algorithm.dart';
+import 'package:app_grafos/features/network_algorithms/presentation/screens/network_algorithm_screen.dart';
 import 'package:app_grafos/features/assignment/presentation/screens/asignacion_screen.dart';
 import 'package:app_grafos/features/binary_tree/presentation/screens/binary_tree_screen.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
@@ -14,6 +16,12 @@ import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
 
 void main() {
   final screens = <String, Widget>{
+    'Kruskal': const NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.kruskal,
+    ),
+    'Dijkstra': const NetworkAlgorithmScreen(
+      algorithm: NetworkAlgorithm.dijkstra,
+    ),
     'grafos': const GrafoScreen(),
     'árboles': const BinaryTreeScreen(),
     'asignación': const AsignacionScreen(),

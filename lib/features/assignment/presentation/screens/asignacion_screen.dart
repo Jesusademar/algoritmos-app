@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:app_grafos/app/app_theme.dart';
@@ -19,6 +18,7 @@ import 'package:app_grafos/shared/persistence/graph_document_codec.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_manual_dialog.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
+import 'package:app_grafos/shared/graph_editor/widgets/graph_canvas_viewport.dart';
 import 'package:app_grafos/shared/widgets/graph_save_dialog.dart';
 import 'package:app_grafos/shared/widgets/mathematical_procedure_dialog.dart';
 
@@ -941,85 +941,41 @@ class _AsignacionScreenState extends State<AsignacionScreen> {
               emptyTitle: 'Conecta recursos y tareas',
               canvas: Stack(
                 children: [
-                  Listener(
-                    onPointerDown: (event) {
-                      if (event.buttons == kSecondaryButton) {
-                        final nodo = obtenerNodoEnPosicion(event.localPosition);
-                        if (nodo != null) {
-                          mostrarOpcionesNodo(nodo);
+                  GraphCanvasViewport(
+                    nodes: nodos,
+                    painter: AsignacionPainter(
+                      nodos,
+                      conexiones,
+                      nodoOrigen,
+                      idsConexionesOptimas,
+                    ),
+                    onTap: (position) {
+                      final nodo = obtenerNodoEnPosicion(position);
+                      if (nodo != null) {
+                        if (nodoOrigen == null) {
+                          setState(() => nodoOrigen = nodo);
+                        } else {
+                          conectarNodos(nodo);
+                        }
+                      } else {
+                        final conexion = obtenerConexionEnPosicion(position);
+                        if (conexion != null) {
+                          mostrarOpcionesConexion(conexion);
+                        } else {
+                          agregarNodo(position);
                         }
                       }
                     },
-                    child: GestureDetector(
-                      onTapDown: (details) {
-                        final nodo = obtenerNodoEnPosicion(
-                          details.localPosition,
-                        );
-                        if (nodo != null) {
-                          if (nodoOrigen == null) {
-                            setState(() => nodoOrigen = nodo);
-                          } else {
-                            conectarNodos(nodo);
-                          }
-                        } else {
-                          final conexion = obtenerConexionEnPosicion(
-                            details.localPosition,
-                          );
-                          if (conexion != null) {
-                            mostrarOpcionesConexion(conexion);
-                          } else {
-                            agregarNodo(details.localPosition);
-                          }
-                        }
-                      },
-                      onDoubleTapDown: (details) {
-                        final nodo = obtenerNodoEnPosicion(
-                          details.localPosition,
-                        );
-                        if (nodo != null) {
-                          mostrarOpcionesNodo(nodo);
-                        }
-                      },
-                      onLongPressStart: (details) {
-                        final nodo = obtenerNodoEnPosicion(
-                          details.localPosition,
-                        );
-                        if (nodo != null) {
-                          mostrarOpcionesNodo(nodo);
-                        }
-                      },
-                      onPanStart: (details) {
-                        final nodo = obtenerNodoEnPosicion(
-                          details.localPosition,
-                        );
-                        if (nodo != null) {
-                          nodoDragging = nodo;
-                        }
-                      },
-                      onPanUpdate: (details) {
-                        if (nodoDragging != null) {
-                          setState(() {
-                            nodoDragging!.posicion += details.delta;
-                            _invalidarResultado();
-                          });
-                        }
-                      },
-                      onPanEnd: (details) {
-                        nodoDragging = null;
-                      },
-                      child: Container(
-                        color: Colors.transparent,
-                        child: CustomPaint(
-                          painter: AsignacionPainter(
-                            nodos,
-                            conexiones,
-                            nodoOrigen,
-                            idsConexionesOptimas,
-                          ),
-                          size: Size.infinite,
-                        ),
-                      ),
-                    ),
+                    onEdit: (position) {
+                      final nodo = obtenerNodoEnPosicion(position);
+                      if (nodo != null) {
+                        mostrarOpcionesNodo(nodo);
+                      }
+                    },
+                    onNodeMoved: (node, position) => setState(() {
+                      node.posicion = position;
+                      _invalidarResultado();
+                    }),
                   ),
                   // Botón Limpiar Lienzo Abajo a la Izquierda
                   Positioned(
