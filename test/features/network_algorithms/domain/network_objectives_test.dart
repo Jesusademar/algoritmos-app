@@ -160,15 +160,14 @@ void main() {
       }
     },
   );
-  test('máximo rechaza ciclos sin alterar el mínimo y valida el origen', () {
+  test('máximo admite ciclos sin repetir nodos y valida el origen', () {
     final cyclic = WeightedNetwork(
       nodes: ['a', 'b'],
       edges: const [WeightedEdge('a', 'b', 2), WeightedEdge('b', 'a', 3)],
     );
-    expect(
-      () => const LongestPathSolver().solve(cyclic, 'a'),
-      throwsArgumentError,
-    );
+    final maximum = const LongestPathSolver().solve(cyclic, 'a');
+    expect(maximum.distances, {'a': 0, 'b': 2});
+    expect(maximum.pathTo('b')!.map((edge) => edge.id), [('a', 'b')]);
     expect(const DijkstraSolver().solve(cyclic, 'a').distances['b'], 2);
     expect(
       () => const LongestPathSolver().solve(example, 'inexistente'),

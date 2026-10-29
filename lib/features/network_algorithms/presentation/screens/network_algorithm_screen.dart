@@ -46,6 +46,8 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
   NetworkObjective _objective = NetworkObjective.minimize;
   bool get _maximizing => _objective == NetworkObjective.maximize;
   int _sequence = 0;
+  int _calculationVersion = 0;
+  bool _calculating = false;
   bool get _directed => widget.algorithm == NetworkAlgorithm.dijkstra;
   Color get _accent => _directed ? AppColors.graph : AppColors.sorting;
   String _label(String id) => _nodes.firstWhere((n) => n.id == id).nombre;
@@ -71,6 +73,8 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
   );
 
   void _invalidate() {
+    _calculationVersion++;
+    _calculating = false;
     _kruskal = null;
     _dijkstra = null;
     _error = null;
@@ -374,14 +378,41 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
     }
   }
 
-  void _calculate() {
+  void _cancelCalculation() {
+    setState(() {
+      _calculationVersion++;
+      _calculating = false;
+    });
+  }
+
+  Future<void> _calculate() async {
+    if (_calculating) return;
+    final version = ++_calculationVersion;
     try {
       final network = _network();
       if (_directed) {
-        final result = _maximizing
-            ? const LongestPathSolver().solve(network, _source ?? '')
-            : const DijkstraSolver().solve(network, _source ?? '');
+        final source = _source ?? '';
+        final NetworkPathResult? result;
+        if (_maximizing) {
+          setState(() {
+            _calculating = true;
+            _dijkstra = null;
+            _kruskal = null;
+            _error = null;
+          });
+          result = await const LongestPathSolver().solveAsync(
+            network,
+            source,
+            isCancelled: () => !mounted || version != _calculationVersion,
+          );
+        } else {
+          result = const DijkstraSolver().solve(network, source);
+        }
+        if (!mounted || version != _calculationVersion || result == null) {
+          return;
+        }
         setState(() {
+          _calculating = false;
           _dijkstra = result;
           _kruskal = null;
           _error = null;
@@ -398,6 +429,7 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
         });
       }
     } on ArgumentError catch (error) {
+      if (!mounted || version != _calculationVersion) return;
       setState(() {
         _invalidate();
         _error = error.message.toString();
@@ -420,9 +452,11 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
       accent: _accent,
       actions: [
         IconButton(
-          tooltip: 'Calcular',
-          onPressed: _calculate,
-          icon: const Icon(Icons.play_arrow_rounded),
+          tooltip: _calculating ? 'Cancelar cálculo' : 'Calcular',
+          onPressed: _calculating ? _cancelCalculation : _calculate,
+          icon: Icon(
+            _calculating ? Icons.stop_rounded : Icons.play_arrow_rounded,
+          ),
         ),
         PopupMenuButton<String>(
           tooltip: 'Más opciones',
@@ -503,7 +537,7 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
               Text(
                 _directed
                     ? (_maximizing
-                          ? 'Rutas más largas · red sin ciclos'
+                          ? 'Rutas de mayor costo'
                           : 'Rutas más cortas · Dijkstra')
                     : (_maximizing
                           ? 'Árbol de expansión máxima'
@@ -547,7 +581,7 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
               const SizedBox(height: 16),
               if (_directed && _maximizing) ...[
                 const Text(
-                  'Método: orden topológico. Maximizar requiere una red dirigida sin ciclos.',
+                  'Se permiten ciclos en la red. La ruta máxima no repite nodos. En redes muy conectadas el cálculo puede tardar más.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -586,16 +620,29 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
                 const SizedBox(height: 16),
               ],
               FilledButton.icon(
-                onPressed: _calculate,
-                icon: const Icon(Icons.play_arrow_rounded),
+                onPressed: _calculating ? _cancelCalculation : _calculate,
+                icon: Icon(
+                  _calculating ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                ),
                 label: Text(
-                  _directed
+                  _calculating
+                      ? 'Cancelar cálculo'
+                      : _directed
                       ? 'Calcular rutas'
                       : (_maximizing
                             ? 'Calcular árbol máximo'
                             : 'Calcular árbol mínimo'),
                 ),
               ),
+              if (_calculating) ...[
+                const SizedBox(height: 12),
+                const LinearProgressIndicator(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Buscando la ruta máxima sin repetir nodos…',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: procedure == null
@@ -707,9 +754,15 @@ class _NetworkAlgorithmScreenState extends State<NetworkAlgorithmScreen> {
                         ),
                       const SizedBox(height: 12),
                       Text(
-                        _maximizing
-                            ? 'Big O: O(V + E) · memoria O(V + E)'
-                            : 'Big O: O(V² + E) · memoria O(V + E)',
+                        'Método: ${_dijkstra!.methodLabel}',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Big O: ${_dijkstra!.timeComplexity} · memoria ${_dijkstra!.spaceComplexity}',
                         style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12,

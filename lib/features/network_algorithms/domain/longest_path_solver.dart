@@ -4,12 +4,37 @@ import 'package:app_grafos/features/network_algorithms/domain/network_objective.
 import 'package:app_grafos/features/network_algorithms/domain/weighted_network.dart';
 import 'package:app_grafos/shared/domain/mathematical_procedure.dart';
 
-/// Ruta máxima en una red dirigida acíclica: O(V + E).
-/// No utiliza Dijkstra: fijar el mayor acumulado no resuelve caminos máximos.
+/// Rutas máximas sin repetir nodos. En DAG utiliza orden topológico; con
+/// ciclos explora todas las rutas simples. No aplica la selección de Dijkstra.
 class LongestPathSolver {
   const LongestPathSolver();
 
-  NetworkPathResult solve(WeightedNetwork network, String source) {
+  NetworkPathResult solve(WeightedNetwork network, String source) =>
+      _steps(network, source).last!;
+
+  /// Comparte el cálculo exacto con solve, cediendo tiempo a la interfaz.
+  /// Cancelar descarta la búsqueda completa, sin presentar resultados parciales.
+  Future<NetworkPathResult?> solveAsync(
+    WeightedNetwork network,
+    String source, {
+    bool Function()? isCancelled,
+  }) async {
+    final watch = Stopwatch()..start();
+    for (final result in _steps(network, source)) {
+      if (isCancelled?.call() ?? false) return null;
+      if (result != null) return result;
+      if (watch.elapsedMilliseconds >= 8) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        watch.reset();
+      }
+    }
+    return null;
+  }
+
+  Iterable<NetworkPathResult?> _steps(
+    WeightedNetwork network,
+    String source,
+  ) sync* {
     network.validate(nonNegative: true);
     if (!network.nodes.contains(source)) {
       throw ArgumentError('Selecciona un nodo de inicio válido.');
@@ -19,6 +44,7 @@ class LongestPathSolver {
     for (final edge in network.edges) {
       adjacency[edge.from]!.add(edge);
       incoming[edge.to] = incoming[edge.to]! + 1;
+      yield null;
     }
     final pending = Queue<String>.of(
       network.nodes.where((id) => incoming[id] == 0),
@@ -30,13 +56,104 @@ class LongestPathSolver {
       for (final edge in adjacency[id]!) {
         incoming[edge.to] = incoming[edge.to]! - 1;
         if (incoming[edge.to] == 0) pending.add(edge.to);
+        yield null;
       }
     }
-    if (ordered.length != network.nodes.length) {
-      throw ArgumentError(
-        'Para maximizar, la red debe estar libre de ciclos. Elimina el ciclo o cambia a Minimizar.',
-      );
+    if (ordered.length == network.nodes.length) {
+      yield _acyclic(network, source, adjacency, ordered);
+      return;
     }
+
+    final distances = <String, int>{source: 0};
+    final bestPaths = <String, List<WeightedEdge>>{source: const []};
+    final visited = <String>{source};
+    final path = <WeightedEdge>[];
+    final stack = <_PathFrame>[
+      _PathFrame(source, adjacency[source]!.iterator, 0),
+    ];
+    var explored = 0;
+    var rejected = 0;
+    while (stack.isNotEmpty) {
+      yield null;
+      final frame = stack.last;
+      if (!frame.edges.moveNext()) {
+        stack.removeLast();
+        visited.remove(frame.node);
+        if (path.isNotEmpty) path.removeLast();
+        continue;
+      }
+      final edge = frame.edges.current;
+      if (visited.contains(edge.to)) {
+        rejected++;
+        continue;
+      }
+      explored++;
+      final candidate = frame.cost + edge.weight;
+      path.add(edge);
+      final previous = distances[edge.to];
+      if (previous == null || candidate > previous) {
+        distances[edge.to] = candidate;
+        bestPaths[edge.to] = List.of(path);
+      }
+      // No se descarta un prefijo por ser más barato: deja disponibles otros
+      // nodos y puede dar la mejor ruta a un destino posterior.
+      visited.add(edge.to);
+      stack.add(_PathFrame(edge.to, adjacency[edge.to]!.iterator, candidate));
+    }
+    final steps = <MathematicalStep>[
+      MathematicalStep(
+        title: 'Criterio de maximización',
+        description: 'Se permiten ciclos en la red. Cada ruta empieza en el origen y visita cada nodo como máximo una vez. No se acumula un ciclo indefinidamente.',
+        expressions: ['d(${network.label(source)}) = 0'],
+      ),
+      MathematicalStep(
+        title: 'Explorar todas las rutas simples',
+        description: 'Búsqueda exacta con retroceso. Se prueban las conexiones disponibles, se evita volver a un nodo de la ruta actual y se conserva el mejor camino completo para cada destino.',
+        expressions: [
+          'Rutas no vacías exploradas = $explored',
+          'Extensiones descartadas por repetir nodo = $rejected',
+        ],
+      ),
+      for (final id in network.nodes)
+        MathematicalStep(
+          title: 'Mejor ruta a ${network.label(id)}',
+          description: !bestPaths.containsKey(id)
+              ? 'Sin ruta desde el inicio.'
+              : [
+                  network.label(source),
+                  ...bestPaths[id]!.map((edge) => network.label(edge.to)),
+                ].join(' → '),
+          expressions: [
+            if (id == source)
+              'd(${network.label(id)}) = 0'
+            else if (bestPaths.containsKey(id))
+              '${bestPaths[id]!.map((edge) => edge.weight).join(' + ')} = ${distances[id]}'
+            else
+              'd(${network.label(id)}) = −∞ · inalcanzable',
+          ],
+        ),
+    ];
+    yield NetworkPathResult(
+      source: source,
+      objective: NetworkObjective.maximize,
+      method: NetworkPathMethod.simplePaths,
+      distances: distances,
+      predecessors: const {},
+      paths: bestPaths,
+      procedure: MathematicalProcedure(
+        title: 'Procedimiento matemático · Rutas máximas',
+        description: 'Mayor costo entre todas las rutas dirigidas sin repetir nodos. Se conservan caminos completos independientes por destino; no se utiliza Dijkstra para maximizar.',
+        steps: steps,
+      ),
+    );
+  }
+
+  NetworkPathResult _acyclic(
+    WeightedNetwork network,
+    String source,
+    Map<String, List<WeightedEdge>> adjacency,
+    List<String> ordered,
+  ) {
     final distances = <String, int>{source: 0};
     final predecessors = <String, WeightedEdge>{};
     final steps = <MathematicalStep>[
@@ -89,6 +206,7 @@ class LongestPathSolver {
     );
     return NetworkPathResult(
       source: source,
+      method: NetworkPathMethod.topological,
       objective: NetworkObjective.maximize,
       distances: distances,
       predecessors: predecessors,
@@ -99,4 +217,11 @@ class LongestPathSolver {
       ),
     );
   }
+}
+
+class _PathFrame {
+  _PathFrame(this.node, this.edges, this.cost);
+  final String node;
+  final Iterator<WeightedEdge> edges;
+  final int cost;
 }

@@ -132,7 +132,7 @@ const algorithmModules = [
     title: 'Caminos mínimos en una red',
     icon: Icons.route_rounded,
     color: AppColors.graph,
-    description: 'Minimizar utiliza Dijkstra con pesos no negativos. Maximizar obtiene rutas más largas mediante orden topológico en una red dirigida sin ciclos.',
+    description: 'Minimizar utiliza Dijkstra con pesos no negativos. Maximizar encuentra la ruta de mayor costo sin repetir nodos, también en redes con ciclos.',
     input: 'Nodos, conexiones dirigidas, pesos no negativos, inicio y destino.',
     output: 'Ruta resaltada, distancia mínima y distancias a todos los nodos.',
     tip: 'Prueba: cambia el destino para comparar rutas sin recalcular las distancias.',

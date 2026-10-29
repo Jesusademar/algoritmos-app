@@ -16,8 +16,9 @@ desarrollado con Flutter por Jesus Canqui, Miguel Sanchez y Jenny Quispe.
   si la red está desconectada, conexiones resaltadas y procedimiento por pasos.
 - **Dijkstra:** rutas mínimas dirigidas con pesos no negativos, selección de inicio
   y destino, distancias a todos los nodos y procedimiento de relajación. El modo
-  Maximizar obtiene rutas más largas mediante orden topológico y requiere una red
-  sin ciclos; no utiliza Dijkstra para maximizar.
+  Maximizar obtiene la ruta de mayor costo sin repetir nodos, también con ciclos.
+  Usa orden topológico en redes acíclicas y búsqueda exacta con retroceso en las
+  demás; no utiliza Dijkstra para maximizar. Las búsquedas largas se pueden cancelar.
 - **Ordenamiento:** Selection, Insertion, Merge y Shell; sentido ascendente o
   descendente, reproducción por pasos y reporte Big O al finalizar. Cantidad y
   rango aleatorio definidos por el usuario, repetición opcional y enteros de

@@ -181,7 +181,7 @@ enum AlgorithmManual {
   ),
   dijkstra(
     'Dijkstra',
-    'Compara rutas de costo mínimo y máximo desde un inicio, con pesos no negativos. Minimizar utiliza Dijkstra; Maximizar usa orden topológico y requiere una red sin ciclos.',
+    'Compara rutas de costo mínimo y máximo desde un inicio, con pesos no negativos. Minimizar utiliza Dijkstra; Maximizar busca el camino de mayor costo sin repetir nodos, incluso si la red contiene ciclos.',
     [
       ManualSection(
         'Crear la red',
@@ -193,15 +193,15 @@ enum AlgorithmManual {
       ),
       ManualSection(
         'Interpretar el resultado',
-        'd indica la distancia mínima o máxima según el objetivo; el inicio siempre vale cero para sí mismo. ∞ en mínimo, −∞ en máximo o Sin ruta indica un nodo inalcanzable siguiendo las flechas. Si existen varios caminos de igual costo se resalta uno válido. El destino igual al inicio tiene distancia cero y no necesita conexiones.',
+        'd indica la distancia mínima o máxima según el objetivo; el inicio siempre vale cero para sí mismo. ∞ en mínimo, −∞ en máximo o Sin ruta indica un nodo inalcanzable siguiendo las flechas. Si existen varios caminos de igual costo se resalta uno válido. El destino igual al inicio tiene distancia cero y no necesita conexiones. En Maximizar, cada destino conserva su propia ruta óptima: pueden usar nodos en órdenes diferentes. La ruta resaltada corresponde al destino seleccionado; nunca repite un nodo aunque el dibujo tenga ciclos.',
       ),
       ManualSection(
         'Ver procedimiento matemático',
-        'Después del cálculo abre Ver procedimiento matemático. Cada paso fija el nodo pendiente de menor distancia y aplica d(v)=min(d(v), d(u)+peso). Minimizar selecciona el menor pendiente por exploración: Big O O(V² + E). Maximizar usa programación dinámica en orden topológico y aplica d(v)=max(d(v), d(u)+peso), con Big O O(V + E). La complejidad y el método corresponden al modo calculado. Las redes con ciclos se rechazan en Maximizar; puedes seguir usándolas en Minimizar.',
+        'Después del cálculo abre Ver procedimiento matemático. Cada paso fija el nodo pendiente de menor distancia y aplica d(v)=min(d(v), d(u)+peso). Minimizar selecciona el menor pendiente por exploración: Big O O(V² + E). Maximizar conserva el cálculo por orden topológico O(V + E) cuando no hay ciclos. Si hay ciclos, explora exactamente las rutas sin repetir nodos, con peor caso O(V!) y memoria O(V² + E). La complejidad y el método mostrados corresponden al cálculo realizado. El procedimiento explica el criterio y muestra el camino completo de mayor costo para cada destino.',
       ),
       ManualSection(
         'Navegar y corregir',
-        'Arrastra el fondo para desplazarte y los nodos para acomodarlos. Usa zoom, rueda o dos dedos, y Ajustar nodos a la vista. Toca un peso para editarlo; usa clic derecho, doble clic o pulsación larga para editar o eliminar nodos. Cambiar pesos o conexiones borra el resultado anterior.',
+        'Arrastra el fondo para desplazarte y los nodos para acomodarlos. Usa zoom, rueda o dos dedos, y Ajustar nodos a la vista. Toca un peso para editarlo; usa clic derecho, doble clic o pulsación larga para editar o eliminar nodos. Cambiar pesos o conexiones borra el resultado anterior. En búsquedas largas puedes pulsar Cancelar cálculo; se conserva tu grafo y no se presenta una solución parcial como óptima.',
       ),
       ManualSection(
         'Guardar, cargar y practicar',

@@ -58,6 +58,8 @@ class KruskalResult {
   int get total => edges.fold(0, (sum, edge) => sum + edge.weight);
 }
 
+enum NetworkPathMethod { dijkstra, topological, simplePaths }
+
 class NetworkPathResult {
   NetworkPathResult({
     required this.source,
@@ -65,18 +67,43 @@ class NetworkPathResult {
     required Map<String, int> distances,
     required Map<String, WeightedEdge> predecessors,
     required this.procedure,
+    this.method = NetworkPathMethod.dijkstra,
+    Map<String, List<WeightedEdge>> paths = const {},
   }) : distances = Map.unmodifiable(distances),
-       predecessors = Map.unmodifiable(predecessors);
+       predecessors = Map.unmodifiable(predecessors),
+       paths = Map.unmodifiable({
+         for (final entry in paths.entries)
+           entry.key: List<WeightedEdge>.unmodifiable(entry.value),
+       });
   final String source;
   final NetworkObjective objective;
   final Map<String, int> distances;
   final Map<String, WeightedEdge> predecessors;
   final MathematicalProcedure procedure;
+  final NetworkPathMethod method;
+  // En redes con ciclos la mejor ruta a cada destino se conserva completa:
+  // sus predecesores pueden ser incompatibles con los de otros destinos.
+  final Map<String, List<WeightedEdge>> paths;
+  String get timeComplexity => switch (method) {
+    NetworkPathMethod.dijkstra => 'O(V² + E)',
+    NetworkPathMethod.topological => 'O(V + E)',
+    NetworkPathMethod.simplePaths => 'O(V!)',
+  };
+  String get spaceComplexity =>
+      method == NetworkPathMethod.simplePaths ? 'O(V² + E)' : 'O(V + E)';
+  String get methodLabel => switch (method) {
+    NetworkPathMethod.dijkstra => 'Dijkstra',
+    NetworkPathMethod.topological => 'Orden topológico',
+    NetworkPathMethod.simplePaths => 'Búsqueda exacta de rutas simples',
+  };
   List<WeightedEdge>? pathTo(String target) {
     if (!distances.containsKey(target)) return null;
+    if (paths.containsKey(target)) return paths[target];
+    final visited = <String>{};
     final reversed = <WeightedEdge>[];
     var current = target;
     while (current != source) {
+      if (!visited.add(current)) return null;
       final edge = predecessors[current];
       if (edge == null) return null;
       reversed.add(edge);
