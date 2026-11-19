@@ -56,7 +56,30 @@ class _ModulePainter extends CustomPainter {
       );
     }
 
-    if (id == 'sorting') {
+    if (id == 'fuzzy') {
+      final axis = Paint()
+        ..color = AppColors.border
+        ..strokeWidth = 1;
+      canvas.drawLine(
+        Offset(center.dx - 80, 76),
+        Offset(center.dx + 80, 76),
+        axis,
+      );
+      for (var i = 0; i < 3; i++) {
+        final x = center.dx - 80 + i * 40;
+        final path = Path()
+          ..moveTo(x, 76)
+          ..lineTo(x + 40, 20)
+          ..lineTo(x + 80, 76);
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = [AppColors.sorting, AppColors.johnson, AppColors.graph][i]
+            ..strokeWidth = 2.5
+            ..style = PaintingStyle.stroke,
+        );
+      }
+    } else if (id == 'sorting') {
       const heights = [24.0, 50.0, 34.0, 64.0, 42.0, 56.0, 70.0];
       for (var i = 0; i < heights.length; i++) {
         final rect = Rect.fromLTWH(

@@ -21,6 +21,7 @@ lib/
 │   ├── johnson/{domain,presentation}/
 │   ├── esquina_nor_oeste/{domain,presentation}/
 │   ├── sorting/{domain,presentation}/
+│   ├── fuzzy/{domain,data,presentation}/
 │   └── binary_tree/{domain,presentation}/
 └── shared/
     ├── graph_editor/
@@ -44,7 +45,7 @@ de reproducción en `providers/sorting_visualization_provider.dart`.
 ## Responsabilidades
 
 - **`app/`:** crea la aplicación y configura el tema. `algorithm_modules.dart`
-  define nombres, descripciones, categorías, colores y destinos de los seis
+  define nombres, descripciones, categorías, colores y destinos de los nueve
   módulos. El dashboard y el menú usan este catálogo único.
 - **`features/*/domain/`:** problemas, resultados, cálculos y validaciones.
   Estas clases usan Dart y no dependen de widgets ni de `BuildContext`.
@@ -54,6 +55,16 @@ de reproducción en `providers/sorting_visualization_provider.dart`.
 - **`features/*/presentation/widgets/`:** dibujo y presentación. Los pintores
   de grafos, asignación, transporte y actividades están separados de sus
   pantallas. Cada uno conserva las reglas visuales de su propio módulo.
+- **`features/fuzzy/`:** el dominio valida variables, conjuntos y reglas, codifica
+  el FIS Mamdani y el JSON editable, y ajusta referencias al eliminar elementos.
+  `data/fis_file_service.dart` guarda el `.fis` con un escritor sustituible.
+  La pantalla reutiliza `GraphFileService` para los diseños JSON; los diálogos y
+  las curvas están en `presentation/widgets/`. No evalúa inferencia difusa.
+  `data/matlab_launch_service.dart` selecciona un `.fis` y llama al servidor
+  `tools/local_matlab_server.py`, que abre MATLAB en Fuzzy Logic Designer.
+  El servidor se limita a loopback, comprueba Host/Origin y token de sesión,
+  no admite comandos arbitrarios y confirma el inicio mediante un archivo
+  escrito por MATLAB después de ejecutar el comando del diseñador.
 - **`shared/graph_editor/`:** modelos mutables del editor y geometría de
   conexiones. `Nodo` y `Conexion` contienen tipos gráficos de `dart:ui` y no
   forman parte del dominio matemático.

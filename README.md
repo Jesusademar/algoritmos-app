@@ -26,13 +26,19 @@ desarrollado con Flutter por Jesus Canqui, Miguel Sanchez y Jenny Quispe.
   Limpiar vacía los datos y resultados; Reiniciar conserva la entrada original.
 - **Árboles binarios:** inserción manual o aleatoria por rango, nodos móviles,
   recorridos Pre-order, In-order y Post-order, y reconstrucción con dos recorridos.
+- **Lógica difusa:** editor general de sistemas Mamdani de tipo 1, con varias
+  entradas y salidas, rangos, funciones triangulares, trapezoidales y gaussianas,
+  curvas de pertenencia y reglas Y/O con peso. Exporta `.fis` para MATLAB Fuzzy
+  Logic Toolbox y guarda/carga el diseño en JSON. Incluye un ejemplo de ventilación.
+  Consulta [la guía de lógica difusa](docs/LOGICA_DIFUSA.md).
 
-El dashboard ofrece ejemplos preparados para los ocho módulos. La carrera de
+El dashboard ofrece ejemplos preparados para los nueve módulos. La carrera de
 ordenamiento compara los cuatro métodos con una entrada común, controles de
 reproducción, línea de tiempo y métricas al terminar. Sus turnos visuales no
 representan mediciones de velocidad real.
 
 Los módulos incluyen ayuda y archivos JSON para guardar y cargar los datos.
+Lógica difusa cuenta con una guía propia y exportación adicional a `.fis`.
 Los manuales comparten una vista adaptable con instrucciones, ejemplos,
 interpretación de resultados y solución de errores. Incluyen también la carrera
 de ordenamiento y el acceso al procedimiento matemático donde está disponible.
@@ -69,7 +75,8 @@ lib/
 │   ├── esquina_nor_oeste/       # Dominio y presentación
 │   ├── network_algorithms/      # Kruskal y Dijkstra: dominio y presentación
 │   ├── sorting/                 # Dominio, estado y presentación
-│   └── binary_tree/             # Dominio y presentación
+│   ├── binary_tree/             # Dominio y presentación
+│   └── fuzzy/                   # Dominio, archivos .fis y editor
 └── shared/
     ├── domain/                  # Procedimientos matemáticos de los módulos
     ├── graph_editor/            # Modelos, geometría y navegación de pizarras
@@ -91,6 +98,19 @@ para ampliar la aplicación.
 flutter pub get
 flutter run -d chrome
 ```
+
+Para usar los botones **Cargar archivo** y **Abrir MATLAB** al final del módulo
+de lógica difusa, sirve la aplicación con la conexión local (Python 3):
+
+```sh
+flutter build web --base-href /
+python3 tools/local_matlab_server.py
+```
+
+Abre `http://localhost:4187`. MATLAB y Fuzzy Logic Toolbox deben estar instalados
+y activados. Si `matlab` no está en el PATH, añade
+`--matlab /ruta/a/MATLAB/bin/matlab` al comando del servidor.
+Consulta [la guía de lógica difusa](docs/LOGICA_DIFUSA.md) para más detalles.
 
 ## Verificación
 

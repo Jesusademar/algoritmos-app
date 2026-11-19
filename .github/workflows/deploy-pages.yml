@@ -40,6 +40,9 @@ jobs:
       - name: Ejecutar pruebas
         run: flutter test
 
+      - name: Verificar la conexión local con MATLAB
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
+
       - name: Obtener la ruta de GitHub Pages
         id: pages
         uses: actions/configure-pages@v5

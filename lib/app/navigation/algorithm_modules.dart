@@ -6,6 +6,8 @@ import 'package:app_grafos/features/assignment/presentation/screens/asignacion_s
 import 'package:app_grafos/features/binary_tree/presentation/screens/binary_tree_screen.dart';
 import 'package:app_grafos/features/esquina_nor_oeste/presentation/screens/esquina_nor_oeste_screen.dart';
 import 'package:app_grafos/features/graph/presentation/screens/grafo_screen.dart';
+import 'package:app_grafos/features/fuzzy/domain/fuzzy_system.dart';
+import 'package:app_grafos/features/fuzzy/presentation/screens/fuzzy_screen.dart';
 import 'package:app_grafos/features/johnson/presentation/screens/johnson_screen.dart';
 import 'package:app_grafos/features/network_algorithms/domain/network_algorithm.dart';
 import 'package:app_grafos/features/network_algorithms/presentation/screens/network_algorithm_screen.dart';
@@ -169,6 +171,21 @@ const algorithmModules = [
     tip: 'Los recorridos para reconstruir deben tener los mismos valores únicos; su orden determina la forma del árbol.',
     screen: BinaryTreeScreen(),
   ),
+  AlgorithmModule(
+    id: 'fuzzy',
+    category: 'Inteligencia artificial',
+    menuTitle: 'Lógica difusa',
+    summary: 'Diseña sistemas Mamdani y exporta archivos .fis para MATLAB.',
+    label: 'Lógica difusa',
+    title: 'Sistemas de inferencia difusa',
+    icon: Icons.blur_on_rounded,
+    color: AppColors.sorting,
+    description: 'Modela decisiones con grados de pertenencia. Configura entradas, salidas, conjuntos y reglas para construir un sistema Mamdani de tipo 1.',
+    input: 'Variables con rangos, funciones triangulares, trapezoidales o gaussianas y reglas con Y/O y peso.',
+    output: 'Un archivo .fis para MATLAB Fuzzy Logic Toolbox y un diseño JSON editable.',
+    tip: 'Prueba el ejemplo de ventilación y revisa sus curvas. Guarda el JSON para continuar después y exporta el .fis para evaluarlo en MATLAB.',
+    screen: FuzzyScreen(),
+  ),
 ];
 
 void openAlgorithmModule(BuildContext context, AlgorithmModule module) {
@@ -177,6 +194,7 @@ void openAlgorithmModule(BuildContext context, AlgorithmModule module) {
 
 void openAlgorithmExample(BuildContext context, AlgorithmModule module) {
   final Widget screen = switch (module.id) {
+    'fuzzy' => FuzzyScreen(initialSystem: FuzzySystem.ventilationExample()),
     'graph' => GrafoScreen(initialDocument: graphExample('graph')),
     'assignment' => AsignacionScreen(
       initialDocument: graphExample('assignment'),
