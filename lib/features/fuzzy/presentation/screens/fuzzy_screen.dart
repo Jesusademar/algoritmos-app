@@ -6,6 +6,7 @@ import 'package:app_grafos/features/fuzzy/data/matlab_launch_service.dart';
 import 'package:app_grafos/features/fuzzy/domain/fuzzy_codecs.dart';
 import 'package:app_grafos/features/fuzzy/domain/fuzzy_system.dart';
 import 'package:app_grafos/features/fuzzy/presentation/widgets/fuzzy_edit_dialogs.dart';
+import 'package:app_grafos/features/fuzzy/presentation/widgets/fuzzy_guide_dialog.dart';
 import 'package:app_grafos/features/fuzzy/presentation/widgets/membership_chart.dart';
 import 'package:app_grafos/shared/persistence/graph_file_service.dart';
 import 'package:app_grafos/shared/widgets/algorithm_scaffold.dart';
@@ -317,36 +318,7 @@ class _FuzzyScreenState extends State<FuzzyScreen> {
     );
   }
 
-  void _help() {
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        scrollable: true,
-        title: const Text('Lógica difusa · Guía de uso'),
-        content: const SizedBox(
-          width: 560,
-          child: Text(
-            '1. Pon nombre a tu sistema Mamdani.\n\n'
-            '2. Añade entradas y salidas con sus rangos. Cada variable comienza con tres conjuntos editables. Los nombres usan letras sin tildes, números y guion bajo.\n\n'
-            '3. Edita los conjuntos y revisa sus curvas. Triangular: a ≤ b ≤ c, a < c. Trapezoidal: a ≤ b ≤ c ≤ d, a < d. Gaussiana: sigma > 0 y centro. Los parámetros pueden extenderse fuera del rango. Usa punto decimal.\n\n'
-            '4. Crea reglas con Y (mínimo) u O (máximo) y peso entre 0 y 1. «Cualquiera» ignora una entrada; «Sin efecto» ignora una salida. Cada regla debe usar al menos una entrada y una salida.\n\n'
-            '5. Guarda el diseño JSON para recuperarlo y editarlo después. Cargar JSON, usar el ejemplo o empezar de nuevo reemplaza el diseño actual. Eliminar una variable o conjunto elimina las reglas que lo utilizan.\n\n'
-            '6. Exporta el .fis. Al final de la página, «Cargar archivo» permite elegirlo en el explorador y abrirlo en Fuzzy Logic Designer. «Abrir MATLAB» abre el diseñador sin cargar un archivo. Estos botones requieren la aplicación local y MATLAB con Fuzzy Logic Toolbox y licencia activa. También puedes abrirlo manualmente:\n\n'
-            'fis = readfis("ventilacion.fis");\nfuzzyLogicDesigner(fis);\n\n'
-            'Sustituye ventilacion por el nombre de tu archivo. Para evaluar el ejemplo:\n\n'
-            'salida = evalfis(fis, [30 70]);\n\n'
-            'El archivo define un sistema Mamdani de tipo 1: AND min, OR max, implicación min, agregación max y centroide. La evaluación del sistema se realiza en MATLAB. Cargar un .fis lo abre en MATLAB; para editar el diseño aquí, carga su JSON.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendido'),
-          ),
-        ],
-      ),
-    );
-  }
+  void _help() => mostrarGuiaDifusa(context);
 
   Widget _variableCard(bool input, int index) {
     final v = (input ? _system.inputs : _system.outputs)[index];

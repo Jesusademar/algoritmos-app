@@ -9,6 +9,7 @@ from pathlib import Path
 import secrets
 import shutil
 import subprocess
+import sys
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -21,6 +22,28 @@ def matlab_quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
 
+def find_matlab(configured=None):
+    selected = configured or os.environ.get('MATLAB_CMD')
+    if selected:
+        path = Path(selected.strip().strip('"'))
+        if path.suffix.lower() == '.app':
+            path = path / 'bin' / 'matlab'
+        return str(path)
+    found = shutil.which('matlab')
+    if found:
+        return found
+    if os.name == 'nt':
+        roots = {os.environ.get('ProgramW6432'), os.environ.get('ProgramFiles'), r'C:Program Files'}
+        candidates = [item for root in roots if root
+                      for item in Path(root, 'MATLAB').glob('R*/bin/matlab.exe')]
+    elif sys.platform == 'darwin':
+        candidates = list(Path('/Applications').glob('MATLAB_R*.app/bin/matlab'))
+    else:
+        candidates = [item for root in ('/usr/local/MATLAB', '/opt/matlab')
+                      for item in Path(root).glob('R*/bin/matlab')]
+    return str(max(candidates, key=str)) if candidates else None
+
+
 class MatlabBridge:
     def __init__(self, executable, state_directory):
         self.executable = executable
@@ -31,7 +54,7 @@ class MatlabBridge:
 
     def launch(self, payload):
         if not self.executable or not os.access(self.executable, os.X_OK):
-            raise ValueError('No se encontró MATLAB instalado en esta computadora.')
+            raise ValueError('No se encontró MATLAB en esta computadora. Instálalo o define MATLAB_CMD con la ruta de su ejecutable.')
         if not isinstance(payload, dict) or set(payload) - {'name', 'content'}:
             raise ValueError('Solicitud no válida.')
         has_file = 'name' in payload or 'content' in payload
@@ -73,7 +96,8 @@ class MatlabBridge:
                 environment.setdefault('QT_QPA_PLATFORM', 'xcb')
             try:
                 process = subprocess.Popen(
-                    [str(self.executable), '-desktop', '-sd', str(directory),
+                    [str(self.executable), *(['-wait'] if os.name == 'nt' else []),
+                     '-desktop', '-sd', str(directory),
                      '-logfile', str(directory / 'command-window.log'),
                      '-r', f'run({matlab_quote(script)});'],
                     stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
@@ -187,15 +211,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=4187)
     parser.add_argument('--directory', type=Path, default=Path(__file__).resolve().parents[1] / 'build/web')
-    parser.add_argument('--matlab', default=shutil.which('matlab'))
+    parser.add_argument('--matlab')
     parser.add_argument('--state-directory', type=Path, default=Path.home() / '.cache/logiverse/matlab')
     args = parser.parse_args()
     if not (args.directory / 'index.html').is_file():
         parser.error('Primero ejecuta flutter build web --base-href /')
-    bridge = MatlabBridge(args.matlab, args.state_directory)
+    matlab = find_matlab(args.matlab)
+    bridge = MatlabBridge(matlab, args.state_directory)
     def handler(*positional, **keywords):
         return LocalHandler(*positional, directory=str(args.directory), bridge=bridge, **keywords)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), handler)
+    print(f'MATLAB: {matlab or "no encontrado; define MATLAB_CMD"}', flush=True)
     print(f'LogiVerse y MATLAB: http://localhost:{args.port}', flush=True)
     try:
         server.serve_forever()

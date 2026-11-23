@@ -73,22 +73,58 @@ Al final de la pantalla hay dos botones:
   cargar un archivo. Para abrir el diseño actual, primero exporta su `.fis`
   y selecciónalo con **Cargar archivo**.
 
-Para usar estos botones, ejecuta desde la raíz del proyecto:
+Para usar estos botones, cada integrante debe correr la app en la computadora
+que tiene MATLAB. **No hay que editar rutas en el código**: el proyecto puede estar
+en cualquier carpeta y el servidor busca MATLAB automáticamente.
+
+### 1. Requisitos de cada computadora
+
+| Programa | Detalle |
+| --- | --- |
+| MATLAB | Con **Fuzzy Logic Toolbox** y licencia activa. Ábrelo una vez a mano para activarlo. |
+| Python | 3.7 o superior, sin paquetes adicionales. En Windows marca **Add python.exe to PATH**. |
+| Flutter | La versión indicada por `pubspec.yaml`. |
+
+### 2. Ejecutar desde la raíz del proyecto
+
+Windows (PowerShell):
+
+```powershell
+flutter pub get
+flutter build web --base-href /
+py tools/local_matlab_server.py
+```
+
+macOS o Linux:
 
 ```sh
+flutter pub get
 flutter build web --base-href /
 python3 tools/local_matlab_server.py
 ```
 
-Abre `http://localhost:4187`. Si el ejecutable `matlab` no está en el PATH,
-especifica `--matlab /ruta/a/MATLAB/bin/matlab`. Puedes cambiar el puerto con
-`--port 4188`. El servidor necesita Python 3 y una sesión gráfica; MATLAB debe
-tener licencia activa y Fuzzy Logic Toolbox. Se muestra el estado del inicio
-y los errores de licencia o del diseñador. El servidor conserva una copia del
-archivo seleccionado y el registro de MATLAB en `~/.cache/logiverse/matlab/`.
-Puedes borrar esas carpetas cuando hayas terminado y cerrado MATLAB.
-En una sesión Linux Wayland, el servidor usa el backend X11 de Qt a través de
-XWayland para el proceso de MATLAB; no modifica la configuración del escritorio.
+Deja la terminal abierta y entra a `http://localhost:4187`. La terminal muestra la
+ruta de MATLAB detectada. Los botones no funcionan desde GitHub Pages ni con
+`flutter run`.
+
+### 3. Qué cambia según la máquina
+
+| Situación | Qué hacer |
+| --- | --- |
+| Terminal: `MATLAB: no encontrado` | Define `MATLAB_CMD` en esa terminal e inicia el servidor otra vez. Cambia `R2026b` por tu versión. |
+| Windows | `$env:MATLAB_CMD = "C:Program FilesMATLABR2026binmatlab.exe"` |
+| macOS | `export MATLAB_CMD="/Applications/MATLAB_R2026b.app"` |
+| Linux | `export MATLAB_CMD="/usr/local/MATLAB/R2026b/bin/matlab"` |
+| Puerto 4187 ocupado | Agrega `--port 4188` y abre `http://localhost:4188`. |
+| `py` no se reconoce | Reinstala Python con **Add python.exe to PATH** y abre otra terminal. |
+| Cambiaste código Flutter | Repite `flutter build web --base-href /`. |
+| MATLAB pide licencia | Actívalo y ejecuta `ver` para confirmar Fuzzy Logic Toolbox. |
+
+MATLAB se busca en este orden: `--matlab`, `MATLAB_CMD`, `PATH` y las carpetas de
+instalación habituales de cada sistema. Si hay varias versiones, usa la más reciente.
+El servidor conserva una copia del archivo seleccionado y el registro de MATLAB en
+`~/.cache/logiverse/matlab/`. Puedes borrar esas carpetas después de cerrar MATLAB.
+En una sesión Linux Wayland usa XWayland solo para el proceso de MATLAB.
 
 La conexión funciona con este servidor local; la versión de GitHub Pages y un
 servidor estático común permiten exportar archivos, pero no iniciar MATLAB.

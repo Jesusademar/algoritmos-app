@@ -104,12 +104,13 @@ de lógica difusa, sirve la aplicación con la conexión local (Python 3):
 
 ```sh
 flutter build web --base-href /
-python3 tools/local_matlab_server.py
+py tools/local_matlab_server.py       # Windows
+python3 tools/local_matlab_server.py  # macOS o Linux
 ```
 
 Abre `http://localhost:4187`. MATLAB y Fuzzy Logic Toolbox deben estar instalados
-y activados. Si `matlab` no está en el PATH, añade
-`--matlab /ruta/a/MATLAB/bin/matlab` al comando del servidor.
+y activados. No hay que editar rutas: el servidor detecta MATLAB. Si muestra
+`MATLAB: no encontrado`, define `MATLAB_CMD` con la ruta de su ejecutable.
 Consulta [la guía de lógica difusa](docs/LOGICA_DIFUSA.md) para más detalles.
 
 ## Verificación

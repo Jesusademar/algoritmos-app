@@ -2,6 +2,7 @@ import http.client
 import json
 from pathlib import Path
 import tempfile
+import sys
 import threading
 import unittest
 from unittest.mock import Mock, patch
@@ -13,7 +14,7 @@ class BridgeTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="logiverse 'test ")
         self.addCleanup(self.temp.cleanup)
-        self.bridge = MatlabBridge('/bin/true', self.temp.name)
+        self.bridge = MatlabBridge(sys.executable, self.temp.name)
 
     @patch('local_matlab_server.subprocess.Popen')
     @patch.dict('local_matlab_server.os.environ', {'XDG_SESSION_TYPE': 'wayland', 'DISPLAY': ':0'}, clear=True)
