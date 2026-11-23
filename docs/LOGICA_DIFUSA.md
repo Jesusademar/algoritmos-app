@@ -57,6 +57,10 @@ El archivo resultante usa AND `min`, OR `max`, implicación `min`, agregación `
 y defuzzificación `centroid`. El ejemplo es educativo; ajusta los conjuntos y las
 reglas a tu ejercicio.
 
+**Ejemplo de rendimiento** carga un sistema inspirado en el ejemplo de clase, con
+Interes, Calidad_Docente e Infraestructura como entradas, Rendimiento_Academico
+como salida y 27 reglas. Sus valores son aproximados y se pueden ajustar.
+
 **Ejemplo trapezoidal** carga el mismo problema con nueve conjuntos `trapmf`
 (tres por variable), hombros en los conjuntos bajo y alto y una meseta central.
 Sus cuatro reglas cubren los rangos de las entradas. Puedes editarlo, guardar

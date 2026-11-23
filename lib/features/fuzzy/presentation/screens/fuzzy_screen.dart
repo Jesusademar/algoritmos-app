@@ -473,6 +473,15 @@ class _FuzzyScreenState extends State<FuzzyScreen> {
                       icon: const Icon(Icons.show_chart),
                       label: const Text('Ejemplo trapezoidal'),
                     ),
+                    OutlinedButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => _replace(
+                              FuzzySystem.academicPerformanceExample(),
+                            ),
+                      icon: const Icon(Icons.school_outlined),
+                      label: const Text('Ejemplo de rendimiento'),
+                    ),
                     TextButton.icon(
                       onPressed: _busy ? null : () => _replace(FuzzySystem()),
                       icon: const Icon(Icons.restart_alt),

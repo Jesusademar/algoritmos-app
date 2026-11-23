@@ -362,6 +362,82 @@ class FuzzySystem {
     );
   }
 
+  static FuzzySystem academicPerformanceExample() {
+    MembershipFunction crearTrapecio(String name, List<double> parameters) =>
+        MembershipFunction(
+          name: name,
+          type: MembershipType.trapezoidal,
+          parameters: parameters,
+        );
+
+    int calcularSalida(int interes, int docente, int infraestructura) {
+      final puntaje = interes + docente + infraestructura - 3;
+      if (puntaje <= 2) return 1;
+      return puntaje <= 4 ? 2 : 3;
+    }
+
+    return FuzzySystem(
+      name: 'rendimiento_academico',
+      inputs: [
+        FuzzyVariable(
+          name: 'Interes',
+          min: 0,
+          max: 10,
+          functions: [
+            crearTrapecio('Malo', [-3.75, -0.417, 4.58, 6.927]),
+            crearTrapecio('Regular', [4, 4.6, 5.5, 8]),
+            crearTrapecio('Bueno', [7, 8.1, 10.4, 13.75]),
+          ],
+        ),
+        FuzzyVariable(
+          name: 'Calidad_Docente',
+          min: 0,
+          max: 100,
+          functions: [
+            crearTrapecio('Mala', [-37.4, -4.02, 42.62, 69.8]),
+            crearTrapecio('Regular', [41, 50, 60, 80]),
+            crearTrapecio('Excelente', [60, 88, 104, 137.6]),
+          ],
+        ),
+        FuzzyVariable(
+          name: 'Infraestructura',
+          min: 0,
+          max: 100,
+          functions: [
+            crearTrapecio('mala', [-37.5, -4.17, 28.9, 50.21]),
+            crearTrapecio('regular', [30, 45, 64, 88]),
+            crearTrapecio('Buena', [65, 91, 104, 137.5]),
+          ],
+        ),
+      ],
+      outputs: [
+        FuzzyVariable(
+          name: 'Rendimiento_Academico',
+          min: 0,
+          max: 100,
+          functions: [
+            crearTrapecio('Pesimo', [-37.6, -4.27, 22.1, 48.5]),
+            crearTrapecio('Regular', [30, 45, 60, 76]),
+            crearTrapecio('Excelente', [64, 81, 104, 137.6]),
+          ],
+        ),
+      ],
+      rules: [
+        for (var interes = 1; interes <= 3; interes++)
+          for (var docente = 1; docente <= 3; docente++)
+            for (
+              var infraestructura = 1;
+              infraestructura <= 3;
+              infraestructura++
+            )
+              FuzzyRule(
+                inputs: [interes, docente, infraestructura],
+                outputs: [calcularSalida(interes, docente, infraestructura)],
+              ),
+      ],
+    );
+  }
+
   static FuzzySystem ventilationExample() => FuzzySystem(
     name: 'ventilacion',
     inputs: [
